@@ -23,3 +23,9 @@ center{
 }
 
 h3{color: red !important; font-weight: bolder; !important;}
+
+img {
+  width: 400px;
+  height: 251px;
+  object-fit: contain;
+}
