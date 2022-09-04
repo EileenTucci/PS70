@@ -22,4 +22,4 @@ center{
   text-align: center !important;
 }
 
-h3{color: red !important; font-weight: bold !important;}
+h3{color: red !important; font-weight: bolder; !important;}
