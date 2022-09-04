@@ -17,10 +17,12 @@ p {font-size: 16px;}
   display: grid;
   grid-template-columns: auto auto auto;
   padding: 10px;
+  !important;
 }
 
 .grid-item {
   grid-row: 1 / span 5;
+  !important;
 }
 
 .nav-title{
