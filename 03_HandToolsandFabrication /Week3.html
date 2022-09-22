@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<title>PS70: Intro to Digital Fabrication </title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="../style.css" rel="stylesheet">
+
+
+<nav class="navbar navbar-expand-sm navbar-light bg-light">
+  <div style="align-items: left; justify-content:left;" class="container-fluid">
+    <h3 class="nav-title"> PS70: Intro to Digital Fabrication</h3>
+    <div class="navbar-nav">
+      <h4></h4>
+      <h4><a class="nav-link" href="../index.html">Home</a></h4>
+      <h4><a class="nav-link" href="../about.html">About</a></h4>
+    </div>
+  </div>
+</nav>
+
+<body>
+
+
+<xmp style="display:none;">
+<br> 
+
+#### Week 3: Hand Tools and Fabrication 
+
+For this weeks' project I wanted to make a well. In future weeks my plan would be to add a person "animatronic" next to the well who looks like they are pulling up the string. For this version when you press a button the string attached to the disk (representing a bucket) would raise up from the well, it will only raise the bucket but in future weeks I intend on modifying the project so that the disk can be lowered as well. 
+
+To start I watched this video on making gears in fusion: 
+
+I measured the spoke of the motor I was going to use and cut a shape into my largest gear that would fit exactly over the spoke of my motor. It was a hole-shape that was almost a semicircle, but the cross-section was a little bit further out from the center.
+
+I then sawed the tops off of some cotton swabs to use as axles for the smaller two gears. I measured the diameter of the cotton swabs and input holes into my gears in my design with those same dimensions. 
+
+After watching the video I mention above, I learned that gears should be placed the same distance apart as the length of the two combined radii of the construction line circles that make the gear in fusion. Because my gears would have to have something extend underneath them, I wanted them to be placed up and out over the basin of the well at an angle. To do this I designed an arm that would hold the gears. In this arm, there were two holes for the axles of the upper gears places the correct distances apart at an angle, and a rectangle that would fit the motor snugly as the center of the larger gear. To place them, I drew out a couple connected 30-60-90 triangles whose hypotenuses were the correct distance apart. I included in my arm enough space beyond the axle-holes for two connecting pieces of cardboard that would press-fit into the 2 sides of the arm and connect the design into a cohesive piece.
+
+I then made a "well basin" by making a circle in fusion and a circular pattern of slots for slats of cardboard to fit into. Then I did the same with a smaller disk. Then I made cutouts for each kind of slat, where the slats the correct size for the well would be the correct size to hold the arm together.
+
+After cutting I put the think together, the slats for the "bucket" would not fit and if I hadn't been sick on Monday I would have glued thin pieces of wood into the slots to make it look more bucket-like. I used dental floss for the string.
+
+<img src="IMG_1850.png" alt="Final Version " width="100" height="110">
+
+My circuit used an Arduino Microchip for power, then a resistor because the chip would send 3.3V instead of the 3V the motor required, then a button which I first attached incorrectly (with both legs on one row of the breadboard) and later fixed with Chris' help. Then I connected the circuit to my motor.
+<img src="IMG_1851.png" alt="Circuit On Machine" width="100" height="110">
+<img src="IMG_1834.png" alt="Circuit Alone" width="100" height="110">
+
+
+Unfortunately, all did not go according to plan this week. I got sick on Monday and was sick all of Tuesday so I am uploading my documentation late, and did not have time to put final touches on my project. In the version you see below, the button was attached incorrectly on the breadboard, so that it did not work to turn the machine on and off. I fixed that on Sunday, but unfortunately did not get a video of the machine working. This was because when  I designed the large gear to fit tightly over the rotating part of the motor, I did not realize how malleable cardboard is. Within my first few trial runs, the motor had worn down the perfect little hole so it just spun in place and would not move the large gear anymore. I was going to fix this with glue on Monday, before I got sick. I was also going to attach disks to the ends of the axles the upper gears so they stayed in place. 
+
+As of Sunday, [this is how my machine worked:](https://drive.google.com/file/d/1QfJRfiEqj15n7mz1bHgvlSZMmLUhwdA9/view?usp=sharing)
+
+
+
+</xmp>
+</body>
+
+<script src="../strapdown.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" ></script>
+
+</html>
