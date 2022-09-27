@@ -31,6 +31,77 @@ Eileen is a film student, and something she would like to explore in her final p
 <br>
 I would fabricate the molds for the microphone cage that holds both recievers and the recieving/recording device as well as the sound recieving technology, which I assume will be somewhat like using the vinyl printer to make a speaker. The input will be the sound and output will be the way it records and stores the sound through a reciever. The microcontroller will control, at the very least, how the gain adjusts in response to what the reciever records.
 
+Final Project Proposal for Ibrahim Section
+
+INSPIRATION
+
+I am a student in the AFVS department studying film. I get frustrated a lot by sound. It is a lot harder to work with (for me) than visuals are. Visuals are easier to track and a bit more predictable (ie, someone will give me the visual cue of bending down before they jump). But with sound? A subject could suddenly get super excited and start yelling in the middle of an interview, and all the sound cuts out. To cure this, you could use an Automatic Gain Control system atached to the mic to help this. They have these in some programs on your computer for video chatting, like Zoom. According to some cursory internet sources, like [Major Geeks .com](https://www.majorgeeks.com/content/page/what_is_microphone_agc_and_should_it_be_on_or_off.html) AGC is not reccomended for audio capture because "it isn't "smart." The problem is that AGC can't predict noises and adjusts on the fly, often too late. One of the few situations where this might not matter is anyone using their microphone for video conferencing, remote tech support, etc. Those who are recording for quality will want to turn AGC off." In my project, I would put two microphone receptors in the body of the device, one recording at a higher level and one at a lower gain to minimize the effect of the adjustment of the gain being late.
+
+STORY
+
+When recording an interview with my great-aunt recently, I asked her to say a few words, set my microphone gain (or sensitivity) accordingly, and begain asking her questions. It was just me there shooting, and as she got more excited and started saying more interesting things, she got louder. And louder. By the time I finished the interview she was too loud, and the audio I picked up was clipping too much to be usable. An automatic gain adjusting microphone with a backup adjusting microphone set to a lower gain would prevent this problem in the future.
+
+OPPORTUNITY/PROBLEM
+
+I want to build a "smart"ish automatic gain control microphone to capture audio for videomaking projects because right now the technology does not adjust to the voice of the subject. The technology to do so right now does not account for the time it takes the microphone to register that the volume it is perceiving has changed and modulate its gain.
+
+RESEARCH/REFERENCES
+
+[This document outlines a pathway for a program that would auto-adjust the microphone gain from Texas Instruments](https://www.ti.com/lit/an/snaa028a/snaa028a.pdf)
+
+[This is a video about where to find microphone parts and how to design and solder a basic microphone that has two receptors inside](https://www.youtube.com/watch?v=FjMp1RezqFI)
+
+[This website outlines various kinds of microphone receptor constructions](https://bothners.co.za/dynamic-vs-condenser-mics-a-basic-introduction/#:~:text=Condenser%20mics%20are%20constructed%20with,also%20need%20a%20power%20source)
+
+[This is just a Wikipedia page on AGC microphone uses](https://en.wikipedia.org/wiki/Automatic_gain_control#:~:text=The%20AGC%20circuit%20keeps%20the,level%20within%20an%20acceptable%20range)
+
+FOR CLASS 9/27 FINAL PROJECT UPDATE
+
+Bill of Materials (we may have some of these, so I have not looked up specifics on prices yet):
+
+Audio cable
+4-5 microphone receptors (because I am not good at soldering)
+3D printing materials
+A cat toy/foam/some fabric I can use as a wind screen
+Heat Shrink
+Solder
+Microcontroller
+Duck (or Duct) Tape
+
+
+Project Timeline:
+
+9/27 Ask if makerspace has microphone receptors and an audio cable I can cut open
+
+10/2 Print a microphone body based on size of microphones
+
+10/7 Solder and put together microphone physically, so it works as a non AGC microphone
+
+10/14 Attempt to program Microcontroller to work roughly like the Texas Instruments model and attach it to a microphone. 
+
+10/15 Ask for help:)
+
+10/21 Test microphone make plans for other designs
+
+10/28 Fixes, one that is more receptive
+
+11/4 Design your own condenser microphone receptor
+
+11/11 Fixes; can you get it to work in a zoom?
+
+11/18 Fixes; can you make your own basic zoom for it/way for it to record on an SD card?
+
+11/25 Fixes
+
+
+Project Plan:
+
+I will need to 3D print a cage/body for my microphone like one of the ones in the reference video in the previous section (min 46:51) as well as a little box for my microchip AGC regulator circuit to live in.
+
+I will put the microphones inside the 3D printed body, either loosely or with some glue to help with noise cancelling. Then I will attach it to a cut audio cable using duck tape (like he does in my reference video), so I can snatch the adapter off of that. I will test the microphone on an existing zoom. Once I see it works, I will program the microcrontroller to work like the circuit of systems in the Texas Instruments pdf, and get help completely understanding it. I will attach the AGC microcontroller system to the microphone with tape then attach the full system to the audio cable then connect that to the existing zoom. I will then solder and heatshink the connections—if the contraption works to modulate gain effectively. I will then test to see the optimal amount that the second microphone should be set lower than the first microphone, and link them somehow, so that they always follow one below the other both as AGC mics with different gain thresholds. Or maybe they will run separately, but they will be set to the same threshold to change their gain, but their starting gains are differnt.
+
+
+
 </xmp>
 </body>
 
