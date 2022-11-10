@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<title>PS70: Intro to Digital Fabrication </title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="../style.css" rel="stylesheet">
+
+
+<nav class="navbar navbar-expand-sm navbar-light bg-light">
+  <div style="align-items: left; justify-content:left;" class="container-fluid">
+    <h3 class="nav-title"> PS70: Intro to Digital Fabrication</h3>
+    <div class="navbar-nav">
+      <h4></h4>
+      <h4><a class="nav-link" href="../index.html">Home</a></h4>
+      <h4><a class="nav-link" href="../about.html">About</a></h4>
+    </div>
+  </div>
+</nav>
+
+<body>
+
+
+<xmp style="display:none;">
+<br> 
+
+#### Week 10: Machine Building and End Effectors
+
+For this week, I wanted to design a simple drawing machine. Not a full drawing machine, but a machine that could move a pen around a piece of paper and make marks on it. 
+
+
+I was inspired by this drawing machine on the website: <a>https://roberthart56.github.io/SCFAB/SC_lab/S-12machine/index.html</a>
+
+To accomplish this, I decided I would create a design where two stepper motors are at the corners of a cardboard base. They would be tied with string to a piece of wood with a pen stuck in it. That wood would also be connected to a weight that falls off the edge of the table, like in the example. Then I would stabilize the pen in the wood by tying it with three strings to the wood stabilizer.
+
+PEN COMPLEX
+
+To make the wood stabilizer, I used the CNC mill to make a small 5 by 5 cm square with 8 5mm diameter holes in each corner and on each side. In the center there is a 9.7mm diameter hole, this is the width of the pen I was using just before it is at the grip-part of the pen. 
+
+I put 3 strings around the pen and tied them to the stabilizer base, on three of the sides.
+
+I then tied string around the base and a small metal weight. 
+
+![image of pen and string](./PenandString.png)
+![image of pen and stabilizer 1](./PokingthroughPenandString.png)
+![image of weight](./Weight.png)
+
+MOTOR SET-UP
+
+![image of motor setup](./MotorSetUp.png)
+
+I set up each motor to have a power and ground from the Arduino Uno board, one on Vin pin and one on the 5V pin. 
+
+I connected each to its own L9110 board. And to pins 11, 10, 9, 8 and 6, 5, 4, 3
+
+I used this page on the website as a guide to wire my motors: 
+
+<a>https://nathanmelenbrink.github.io/ps70/10_machines/index.html</a>
+
+I then, once I had figured out the code, I tied each of them to a string that was also tied to the stabilizer, and wrapped that string around the motors.
+
+CODING MOTORS
+
+Getting the motors to run was difficult. I wanted them to run together on each L9110.
+
+Just to see if the board could run both motors with only the power supply from my computer, I ran a code like this:
+
+<pre><code class="language-arduino">
+
+int A1A = 11;
+int A1B = 10;
+int B1A = 9;
+int B1B = 8;
+
+int A2A = 6;
+int A2B = 5;
+int B2A = 4;
+int B2B = 3;
+
+int Pa;
+int Pb;
+
+int Pa2;
+int Pb2;
+
+uint16_t step_count = 0; 
+
+void setup() {
+  pinMode(A1A, OUTPUT);
+  pinMode(A1B, OUTPUT);
+  pinMode(B1A, OUTPUT);
+  pinMode(B1B, OUTPUT);
+
+  pinMode(A2A, OUTPUT);
+  pinMode(A2B, OUTPUT);
+  pinMode(B2A, OUTPUT);
+  pinMode(B2B, OUTPUT);
+  
+}
+
+void pulse_0(){
+  digitalWrite(A1A,1);
+  digitalWrite(A2A,1);
+  digitalWrite(B1A,1);
+  digitalWrite(B2A,1);
+  
+}
+
+void pulse_1(){
+  digitalWrite(A1B,1);
+  digitalWrite(A2B,1);
+  digitalWrite(B1A,1);
+  digitalWrite(B2A,1);
+}
+
+void pulse_2(){
+   digitalWrite(A1B,1);
+  digitalWrite(A2B,1);
+  digitalWrite(B1A,1);
+  digitalWrite(B2A,1);
+}
+
+void pulse_3(){
+ digitalWrite(A1B,1);
+  digitalWrite(A2B,1);
+  digitalWrite(B1A,1);
+  digitalWrite(B2A,1);
+}
+
+void all_off() {
+  digitalWrite(A1B,1);
+  digitalWrite(A2B,1);
+  digitalWrite(B1A,1);
+  digitalWrite(B2A,1);
+}
+
+void loop() {
+
+  all_off(); // turn off coils before sending new step.
+
+  step_count++;
+  step_count = step_count%4;
+
+  if (step_count == 0) pulse_0();
+  if (step_count == 1) pulse_1();
+  if (step_count == 2) pulse_2();
+  if (step_count == 3) pulse_3();  
+
+ }
+</code></pre>
+
+This was based on the website, and the motors responded by ticking subtly like they had slow little heartbeats. However! The similarly adapted mocro-step code ran both motors! 
+
+
+
+But for some reason, it did not reverse both of them. The code here is supposed to run in one way, pause, then run in the other direction. Mine only went one way! 
+
+<a>https://youtube.com/shorts/bSNyA2vciRQ?feature=share</a>
+
+<pre><code> <class="language-arduino">
+
+
+int A1A = 11;
+int A1B = 10;
+int B1A = 9;
+int B1B = 8;
+
+int A2A = 6;
+int A2B = 5;
+int B2A = 4;
+int B2B = 3;
+
+int Pa;
+int Pb;
+
+int Pa2;
+int Pb2;
+
+uint16_t stepnumber = 0; 
+
+void setup() {
+  pinMode(A1A, OUTPUT);
+  pinMode(A1B, OUTPUT);
+  pinMode(B1A, OUTPUT);
+  pinMode(B1B, OUTPUT);
+
+  pinMode(A2A, OUTPUT);
+  pinMode(A2B, OUTPUT);
+  pinMode(B2A, OUTPUT);
+  pinMode(B2B, OUTPUT);
+  
+}
+
+void take_step(int stepnumber, int MAXpower, int wait) {
+  Pa = (sin(stepnumber * 0.098174) * MAXpower);
+  Pb = (cos(stepnumber * 0.098174) * MAXpower);
+
+  if (Pa>0) {
+    analogWrite(A1A,Pa);
+    analogWrite(A1B,0);
+    analogWrite(A2A,Pa);
+    analogWrite(A2B,0);
+  } else{
+    analogWrite(A1A,0);
+    analogWrite(A1B,abs(Pa));
+    analogWrite(A2A,0);
+    analogWrite(A2B,abs(Pa));
+  }
+
+  if (Pb>0) {
+    analogWrite(B1A,Pb);
+    analogWrite(B1B,0);
+    analogWrite(B2A,Pb);
+    analogWrite(B2B,0);
+  } else{
+    analogWrite(B1A,0);
+    analogWrite(B1B,abs(Pb));
+    analogWrite(B2A,0);
+    analogWrite(B2B,abs(Pb));
+  }
+
+  delayMicroseconds(wait);
+}
+
+void hold(int wait){     // apply max holding torque 
+  analogWrite(A1A, 255);
+  analogWrite(A1B, 0);
+  analogWrite(B1A, 255);
+  analogWrite(B1B, 0);
+  analogWrite(A2A, 255);
+  analogWrite(A2B, 0);
+  analogWrite(B2A, 255);
+  analogWrite(B2B, 0);
+  delay(wait);
+}
+
+void back_step(int stepnumber, int MAXpower, int wait) {
+  Pa = (sin(stepnumber * 0.098174) * MAXpower);
+  Pb = (cos(stepnumber * 0.098174) * MAXpower);
+
+  if (Pa<0) {
+    analogWrite(A1A,Pa);
+    analogWrite(A1B,0);
+    analogWrite(A2A,Pa);
+    analogWrite(A2B,0);
+  } else{
+    analogWrite(A1A,0);
+    analogWrite(A1B,(Pa));
+    analogWrite(A2A,0);
+    analogWrite(A2B,(Pa));
+  }
+
+  if (Pb<0) {
+    analogWrite(B1A,Pb);
+    analogWrite(B1B,0);
+    analogWrite(B2A,Pb);
+    analogWrite(B2B,0);
+  } else{
+    analogWrite(B1A,0);
+    analogWrite(B1B,(Pb));
+    analogWrite(B2A,0);
+    analogWrite(B2B,(Pb));
+  }
+
+  delayMicroseconds(wait);
+}
+
+
+void loop() {
+  for (int i = 0; i < 400; i++){
+    stepnumber++; // Add 1 to stepnumber?
+    back_step(stepnumber, 255, 800);
+  }
+
+  hold(30);
+
+ for (int i = 0; i < 400; i--{
+    stepnumber--; // Add 1 to stepnumber?
+    back_step(stepnumber, 255, 800);
+  }
+
+  hold(30);
+
+}
+</class="language-arduino"></code></pre>
+
+
+So, I started to experiment with it. I deleted the part in the loop that was supposed to run the motor backwards and began experimenting with changing the different parts of the code. 
+
+
+This is when I made -abs(Pb):
+
+<a>https://youtube.com/shorts/FoYG7FYOIfM?feature=share</a>
+
+This is when I increased time in the for-loop:
+
+<a>https://youtube.com/shorts/A8BREYOQcXU?feature=share</a>
+
+Experimenting with different speeds:
+
+<a>https://youtube.com/shorts/Et_7w-lDKG0?feature=share</a>
+
+
+
+But in the end, I could not get it to run backwards. I decided to do some tests, just to see if they needed to run the other way for the machine to be able to make SOMETHING:
+
+<a>https://youtube.com/shorts/Q6tSFu2-UAA?feature=share</a>
+
+<a>https://youtube.com/shorts/COycApOX7Cw?feature=share</a>
+
+As you can see, it would run better if the motors could also go backwards.
+
+
+I decided I probably just wasn't using the motors right, so I watched a tutorial reccomended on the class page <a>https://www.youtube.com/watch?v=aKxi7B4-d2U></a>
+
+This made a lot more sense why I couldn't get anything to work, but not why the code I was running initially did not turn the motors the other direction.
+
+I re-wrote the code I was using according to the version in the tutorial:
+
+<pre><code> <class="language-arduino">
+  int A1A = 11;
+int A1B = 10;
+int B1A = 9;
+int B1B = 8;
+
+int A2A = 6;
+int A2B = 5;
+int B2A = 4;
+int B2B = 3;
+
+int stepnumber = 0;
+
+int Pa;
+int Pb;
+
+void move (int stepnumber, int Maxpower, int wait) {
+  Pa = (sin(stepnumber*0.098174)*Maxpower);
+  Pb = (cos(stepnumber*0.098174)*Maxpower);
+
+  if (Pa>0)
+  {
+    analogWrite(A1A,Pa);
+    analogWrite(A1B,0);
+  }
+  else
+  {
+    analogWrite(A1A,0);
+    analogWrite(A1B,abs(Pa));
+  }
+
+  if (Pb>0)
+  { 
+    analogWrite(B1A, Pb);
+    analogWrite(B1B, 0);
+  }
+  else
+  {
+    analogWrite(B1A,0);
+    analogWrite(B1B, abs(Pb));
+  }
+    
+  }
+  
+
+
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(A1A, OUTPUT);
+  pinMode(A1B, OUTPUT);
+  pinMode(B1A, OUTPUT);
+  pinMode(B1B, OUTPUT);
+
+  pinMode(A2A, OUTPUT);
+  pinMode(A2B, OUTPUT);
+  pinMode(B2A, OUTPUT);
+  pinMode(B2B, OUTPUT);
+
+  Serial.begin(9600);
+  
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+  for (int i=0; i<3199; i++)
+  {
+    stepnumber++;
+    move (stepnumber, 255, 250);
+  }
+  delay(3000);
+
+for (int i=0; i<1599 ; i--)
+{
+  stepnumber--;
+  move(stepnumber, 255, 250 );
+}
+delay(3000);
+}
+</class="language-arduino"></code></pre>
+
+This code would make the motors run in one direction, change directions, and then keep going in that direction. So! What if I just added some more for-loops? And end with a "stepnumber = 0" instead of giving it a value?
+
+<pre><code><class="language-arduino">
+
+  void loop() {
+  // put your main code here, to run repeatedly:
+
+  for (int i=0; i<3199; i++)
+  {
+    stepnumber++;
+    move (stepnumber, 255, 250);
+  }
+  delay(3000);
+
+for (int i=0; i<1599 ; i--)
+{
+  stepnumber--;
+  move(stepnumber, 255, 250 );
+}
+delay(3000);
+
+for (int i=0; i<1599 ; i++)
+{
+  stepnumber++;
+  move(stepnumber, 255, 250 );
+}
+delay(3000);
+
+for (int i=0; i<1599 ; i--)
+{
+  stepnumber--;
+  move(stepnumber, 255, 250 );
+}
+delay(3000);
+
+for (int i=0; i<1599 ; i++)
+{
+  stepnumber++;
+  move(stepnumber, 255, 250 );
+}
+delay(3000);
+
+for (int i=0; i<1599 ; i--)
+{
+  stepnumber--;
+  move(stepnumber, 255, 250 );
+}
+delay(3000);
+
+for (int i=0; i<1599 ; i++)
+{
+  stepnumber++;
+  move(stepnumber, 255, 250 );
+}
+delay(3000);
+
+for (int i=0; i<1599 ; i++)
+{
+  stepnumber = 0;
+  move(stepnumber, 255, 250 );
+}
+delay(3000);
+</class="language-arduino"></code></pre>
+
+
+
+PUTTING IT TOGETHER
+
+Once everything was finished, I duct taped the motors to the corner of a cardboard piece with a calibration line drawn onto it. 
+
+CALIBRATION
+
+I was not able to code a way for the stepper motors to reliably move themselves to the right origin every time I power it on, as I am still figuring out how to reliably get the machine to write specific distances, and working out the impact of the two motors spinning at different speeds. Instead, to calibrate the machine, you hold the square down on a line on the cardboard base and wrap the string tightly around the two motors. Then you add your piece of paper, and you are good to go!
+
+FINAL TAKE
+
+It is definitely not the most cohesive drawing machine, but it does move the pen across the paper! 
+
+![image of drawing](./W10WhatitDrew.png)
+
+
+</xmp>
+</body>
+
+<script src="../strapdown.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" ></script>
+
+</html>
