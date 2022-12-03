@@ -31,7 +31,7 @@ Eileen is a film student, and something she would like to explore in her final p
 <br>
 I would fabricate the molds for the microphone cage that holds both recievers and the recieving/recording device as well as the sound recieving technology, which I assume will be somewhat like using the vinyl printer to make a speaker. The input will be the sound and output will be the way it records and stores the sound through a reciever. The microcontroller will control, at the very least, how the gain adjusts in response to what the reciever records.
 
-Final Project Proposal for Ibrahim Section
+<h3>Final Project Proposal for Ibrahim Section</h3>
 
 INSPIRATION
 
@@ -55,7 +55,7 @@ RESEARCH/REFERENCES
 
 [This is just a Wikipedia page on AGC microphone uses](https://en.wikipedia.org/wiki/Automatic_gain_control#:~:text=The%20AGC%20circuit%20keeps%20the,level%20within%20an%20acceptable%20range)
 
-FOR CLASS 9/27 FINAL PROJECT UPDATE
+<h3>FOR CLASS 9/27 FINAL PROJECT UPDATE</h3>
 
 Bill of Materials (we may have some of these, so I have not looked up specifics on prices yet):
 
@@ -101,11 +101,37 @@ I will need to 3D print a cage/body for my microphone like one of the ones in th
 I will put the microphones inside the 3D printed body, either loosely or with some glue to help with noise cancelling. Then I will attach it to a cut audio cable using duck tape (like he does in my reference video), so I can snatch the adapter off of that. I will test the microphone on an existing zoom. Once I see it works, I will program the microcrontroller to work like the circuit of systems in the Texas Instruments pdf, and get help completely understanding it. I will attach the AGC microcontroller system to the microphone with tape then attach the full system to the audio cable then connect that to the existing zoom. I will then solder and heatshink the connections—if the contraption works to modulate gain effectively. I will then test to see the optimal amount that the second microphone should be set lower than the first microphone, and link them somehow, so that they always follow one below the other both as AGC mics with different gain thresholds. Or maybe they will run separately, but they will be set to the same threshold to change their gain, but their starting gains are differnt.
 
 
-Final Project Week of 11/14 Update:
+<h3>Final Project Week of 11/14 Update:</h3>
 
 I changed my design to be a rotating microphone that you can put in the center of a table during meetings and the microphone can sense when someone is talking and move to better pick up that person's voice.
 
-My first design for this was going to be built using ultrasonic sensors. My plan was for the motor to have a platform that rotates with microphones on it and one ultrasonic sensor that has the main microphone on it (this will eventually by an additional microphone that is of better quality than the others and connects to the recorder). The logic would go as follows: That if a mic sensed a louder sound the motor would turn the setup in that direction until the sensor detected something close 
+My first design for this was going to be built using ultrasonic sensors. My plan was for the motor to have a platform that rotates with microphones on it. There would be one ultrasonic sensor that has the main microphone placed on top of it (this will eventually by an additional microphone that is of better quality than the others and connects to the camera). The logic would go as follows: That if a mic sensed a louder sound than the other microphones, the motor would turn the setup in that direction until the sensor detected something close to it. 
+
+The problem with that design would be if three people are talking. Let's say they are sitting in a line in this order: Person 1, Person 2, Person 3. If Person 1 is talking and Person 3 responds, the motor will start to move, but stop at Person 2 because they would be close to it, and the code says the motor should run until the sensor detects something close to it.
+
+
+<h5>MVP Design Code</h5>
+
+
+My change to the design was that I had 3 set positions that do not change. Each position has a microphone that sits beneath the rotating platform so that they do not move. I numbered the positions 1, 2, and 3 and the mics in those positions 1, 2, and 3 accordingly in the code. Each is evenly placed around the motor 120 degrees apart. In the code, the idea was to make an if statement for every situation the mics would be in. For example, that if the platform is at position 1 and mic3's sound crosses a threshold, the steppermotor should take 120 degrees of steps in the direction of mic 3, then set its position to 3. 
+
+To roughtly calibrate the MVP, the platform has an arrow on it and you move the platform so that the arrow points at microphone 1.
+
+Here is my code:
+
+This did not work as well as I intended. When you knock on the table next to one of the mics, the arrow does move to another position. But not necessarily the position you knocked on. It also doesn't always respond to the knocking, and you have to try several times. After the second knock, the motor just spins forever.
+
+
+<h5>MVP Physical Design</h5>
+
+I initially thought I could get out of soldering by just wrapping wire into each of the microphone ports. But I ended up with bad connection and not usuing each port which ended up with a lot of things overheating and wires crossing. So I soldered wires to each of the microphones and attached them like they do on the website here: <a href="https://nathanmelenbrink.github.io/ps70/06_input/index.html">Class Website Microphone Setup</a> This involved a lot of wiring when I added in the stepper motor and driver especially NOT DONE!
+
+
+
+
+
+
+
 
 
 </xmp>
