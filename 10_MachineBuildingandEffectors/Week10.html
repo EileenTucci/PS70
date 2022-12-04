@@ -33,19 +33,19 @@ I was inspired by this drawing machine on the website: <a>https://roberthart56.g
 
 To accomplish this, I decided I would create a design where two stepper motors are at the corners of a cardboard base. They would be tied with string to a piece of wood with a pen stuck in it. That wood would also be connected to a weight that falls off the edge of the table, like in the example. Then I would stabilize the pen in the wood by tying it with three strings to the wood stabilizer.
 
-PEN COMPLEX
+<h5>PEN COMPLEX</h5>
 
-To make the wood stabilizer, I used the CNC mill to make a small 5 by 5 cm square with 8 5mm diameter holes in each corner and on each side. In the center there is a 9.7mm diameter hole, this is the width of the pen I was using just before it is at the grip-part of the pen. 
+To make the wood stabilizer, I used the CNC mill to make a small 5 by 5 cm square with 8 5mm diameter holes in each corner and on each side. In the center there is a 9.7mm diameter hole, this is the width of the pen at its widest point before the grip-part of the pen. 
 
-I put 3 strings around the pen and tied them to the stabilizer base, on three of the sides.
+I put 3 strings around the pen and tied them to 3 sides of the stabilizer base.
 
-I then tied string around the base and a small metal weight. 
+I then used string to tie the base to a small metal weight. 
 
 ![image of pen and string](./PenandString.png)
 ![image of pen and stabilizer 1](./PokingthroughPenandString.png)
 ![image of weight](./Weight.png)
 
-MOTOR SET-UP
+<h5>MOTOR SET-UP</h5>
 
 ![image of motor setup](./MotorSetUp.png)
 
@@ -59,12 +59,13 @@ I used this page on the website as a guide to wire my motors:
 
 I then, once I had figured out the code, I tied each of them to a string that was also tied to the stabilizer, and wrapped that string around the motors.
 
-CODING MOTORS
+<h5>CODING MOTORS</h5>
 
 Getting the motors to run was difficult. I wanted them to run together on each L9110.
 
 Just to see if the board could run both motors with only the power supply from my computer, I ran a code like this:
 
+<div style="height: 350px; overflow: scroll">
 <pre><code class="language-arduino">
 
 int A1A = 11;
@@ -147,7 +148,8 @@ void loop() {
   if (step_count == 3) pulse_3();  
 
  }
-</code></pre>
+ </code></pre>
+  </div>
 
 This was based on the website, and the motors responded by ticking subtly like they had slow little heartbeats. However! The similarly adapted mocro-step code ran both motors! 
 
@@ -157,7 +159,8 @@ But for some reason, it did not reverse both of them. The code here is supposed 
 
 <a>https://youtube.com/shorts/bSNyA2vciRQ?feature=share</a>
 
-<pre><code> <class="language-arduino">
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
 
 
 int A1A = 11;
@@ -282,7 +285,8 @@ void loop() {
   hold(30);
 
 }
-</class="language-arduino"></code></pre>
+ </code></pre>
+  </div>
 
 
 So, I started to experiment with it. I deleted the part in the loop that was supposed to run the motor backwards and began experimenting with changing the different parts of the code. 
@@ -317,7 +321,8 @@ This made a lot more sense why I couldn't get anything to work, but not why the 
 
 I re-wrote the code I was using according to the version in the tutorial:
 
-<pre><code> <class="language-arduino">
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
   int A1A = 11;
 int A1B = 10;
 int B1A = 9;
@@ -397,12 +402,13 @@ for (int i=0; i<1599 ; i--)
 }
 delay(3000);
 }
-</class="language-arduino"></code></pre>
+ </code></pre>
+  </div>
 
 This code would make the motors run in one direction, change directions, and then keep going in that direction. So! What if I just added some more for-loops? And end with a "stepnumber = 0" instead of giving it a value?
 
-<pre><code><class="language-arduino">
-
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
   void loop() {
   // put your main code here, to run repeatedly:
 
@@ -461,21 +467,22 @@ for (int i=0; i<1599 ; i++)
   move(stepnumber, 255, 250 );
 }
 delay(3000);
-</class="language-arduino"></code></pre>
+ </code></pre>
+  </div>
 
 
 
-PUTTING IT TOGETHER
+<h5>PUTTING IT TOGETHER</h5>
 
 Once everything was finished, I duct taped the motors to the corner of a cardboard piece with a calibration line drawn onto it. 
 
-CALIBRATION
+<h5>CALIBRATION</h5>
 
 I was not able to code a way for the stepper motors to reliably move themselves to the right origin every time I power it on, as I am still figuring out how to reliably get the machine to write specific distances, and working out the impact of the two motors spinning at different speeds. Instead, to calibrate the machine, you hold the square down on a line on the cardboard base and wrap the string tightly around the two motors. Then you add your piece of paper, and you are good to go!
 
-FINAL TAKE
+<h5>FINAL DRAWING</h5>
 
-It is definitely not the most cohesive drawing machine, but it does move the pen across the paper! 
+It is definitely not the most comprehensive drawing machine, but it does move the pen across the paper! 
 
 ![image of drawing](./W10WhatitDrew.png)
 
