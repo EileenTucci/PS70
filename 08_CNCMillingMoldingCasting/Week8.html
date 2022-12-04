@@ -18,167 +18,56 @@
   </div>
 </nav>
 
-<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/arduino-light.min.css">
-<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/arduino.min.js"></script>
-<script>hljs.initHighlightingOnLoad();</script> 
-
-
 <body>
 
 
 <xmp style="display:none;">
 <br> 
 
-#### Week 7: Output Devices
+#### Week 8: CNC Milling, Molding, and Casting
 
-In preparation for my final project, I wanted to combine a motor and a microphone, so that if the microphone records a loud sound the motor will start to sweep. I did this by setting up a servo motor and microphone from the output bins in the lab like so:
+For my CNC milling I made a little stop sign. I made it in the program in the computer, I made little tabs on it to cut it out. It is about 13cm wide and an octagon with the word "STOP" engraved in it. The program has a menu to add letters to your project and I sized them so they would fit into the octagon with about a centimeter of space on either side of the "S" and "P".
 
-<img src="Micandmotorsetup.png" alt="Mic and Motor Setup" width="100" height="110">
+<img src="./Stopsign.JPEG" alt="Stop Sign" width="250" height="300">
 
-To code the two to work together, I used the microphone code from the website under input devices and I used the cade from the adafruit website from the microcrontroller programming week. I made each into a class. I eliminated the part of the microphone code where it reads what was plotted, instead I had the class function make "peaktopeak" (or the sound level) an output and then in the void (loop) the microcontroller code checks if the microphone class output (the recording of the sound level) is high enough before updating (running) the servo motor.
+I wanted to mold and cast a tadppole, I am working on a film project right now for class and I will hopefully have little rubber tadpoles I can use as props next semester, so I thought I might start trying to make some now!
 
-Here is my code:
-<pre><code class="language-arduino">
-  #include <Servo.h> 
+This was my original design, I was super excited about this week, so I actually made it before we learned about how the machines actually work.
 
-class Microphone
+<img src="./Combiningmoldbox.PNG" alt="Original Design" width="250" height="300">
 
- {
- const int sampleWindow = 50; // Sample window width in mS (50 mS = 20Hz)
- unsigned int sample;
+Once I had class, I made a different design in fusion, it still didn't look super like a tadpole, but I used some of the "mesh" and "create form" features that I had not used for previous projects, based around a head and body I had sketched and extruded the way I had for the projects up until now. Once I had the form, I created a new body that was a little box that joined with and cut the main body of the tadpole in 2. Then I exported it to PrusaSlicer, hid different layers, and did the same with the other half of the body. I reoriented them in the slicer. Because I was cutting the body in half, and ignoring the legs, one side of the mold is much deeper than the other.
 
- int Microphonepin;
-
- unsigned long startMillis= millis();  // Start of sample window
-    unsigned int peakToPeak = 0;   // peak-to-peak level
-
-    unsigned int signalMax = 0;
-    unsigned int signalMin = 1024;
-
-   public: 
-
-   Microphone(int pin)
-{
-   Microphonepin = pin;
-   
-}
-
-int GetSoundLevel()
-{ 
-  while ((millis() - startMillis) < sampleWindow)
-  {
-       sample = analogRead(Microphonepin);   //reading DC pin from pin A0
-       if (sample < 1024)  // toss out spurious readings
-       {
-          if (sample > signalMax)
-          {
-             signalMax = sample;  // save just the max levels
-          }
-          else if (sample < signalMin)
-          {
-             signalMin = sample;  // save just the min levels
-          }
-       }
-    }
-    peakToPeak = signalMax - signalMin;
-
-    return peakToPeak;
-}
-    
- };
-
-Microphone mic1(0);
-
-class Sweeper
-{
-  Servo servo;              // the servo
-  int pos;              // current servo position 
-  int increment;        // increment to move for each interval
-  int  updateInterval;      // interval between updates
-  unsigned long lastUpdate; // last update of position
-
-public: 
-  Sweeper(int interval)
-  {
-    updateInterval = interval;
-    increment = 1;
-  }
-  
-  void Attach(int pin)
-  {
-    servo.attach(pin);
-  }
-  
-  void Detach()
-  {
-    servo.detach();
-  }
-  
-  void Update()
-  {
-    if((millis() - lastUpdate) > updateInterval)  // time to update
-    {
-      lastUpdate = millis();
-      pos += increment;
-      servo.write(pos);
-      Serial.println(pos);
-      if ((pos >= 120) || (pos <= 0)) // end of sweep
-      {
-        // reverse direction
-        increment = -increment;
-      }
-    }
-  }
-};
-
-Sweeper sweeper1(20);
-
- void setup() 
- {
-    Serial.begin(9600);
-
-    sweeper1.Attach(9);
- }
-
- void loop() 
- {
-
-    // collect data for 50 mS
-     // max - min = peak-peak amplitude
-
-    if (mic1.GetSoundLevel() > 70)
-    { 
-      sweeper1.Update();
-    };
-
-    
- }
- </code></pre> 
+<img src="./tadpolebottom.PNG" alt="Tadpole Bottom" width="250" height="300">
+<img src="./tadpoletop.PNG" alt="Tadpole Top" width="250" height="300">
 
 
-[Here is how it works!](https://drive.google.com/file/d/1uc2OSDiGpbnqxct3HT8fy8xpC0hUPJDz/view?usp=sharing). The microphone needs a loud noise to record anything, but if you set it very low (or someone is milling something) you can see the motor responding to the microphone signal!
+I attempted to add little half-sphere alternating divots and holes for the molds to snap into place. Mine were too small to show up well, which was good because I put them in the wrong order, so that divot matched up with divot instead of sphere matching up with divot. This ended up not being a super effective strategy for other people, so I did not think it was worth it to redesign my mold.
+
+I sized the design down in the software on the ShopBot comupter to be 2.5 cm long.
 
 
-Here is what the oscilliscope measured for the motor:
+Unfotunately, I did not notice the tail poking out the end of my design would A) not be large enough to pour into and B) would mess with the way the machine read how long my design was and make these very messy cuts at the edge of my mold. The mold was still useable, it was just harder to pull the silicone out of it. Some of the definition I had added to the tail did not show up after i milled it, but I was okay with that, there would still be a tail but it wasn't as detailed.
 
-<img src="oscmotor.png" alt="Motor Reading" width="100" height="110">
+<img src="./Boxandtail.PNG" alt="Box Export" width="250" height="300">
 
-And for the microphone:
+<img src="./Firsttadpolemold.PNG" alt="Messy Mold" width="250" height="300">
 
-<img src="oscmic.png" alt="Mic and Motor Setup" width="100" height="110">
+I set the silicone negative in each half of the wax. When that dried, I sprayed each half and molded more silicone into it. My original plan was to put both halves of the mold together and use the tail as a place to pour the silicone into the whole 3D mold at once. The tail-hole was too small even when I used a syringe. Instead I filled both and imidiately flipped the two halves of the mold on top of each other, making sure the holes where the tail was lined up. After I took the first mold out I decided to make another one, so I put more silicone into the now-empty wax, which I used later.
 
+When I pulled the final product out of the molds, there was a lot of silicone that spilled out, I could rip it off, and it looked okay. The feet had big bubbles on the bottom, so they did not mold well. And if you squished the body of the tadpole lightly, you could see that there was a huge airbubble in the body of the tadpole.
 
+<img src="./Firsttadpole.PNG" alt="First Tadpole" width="250" height="300">
 
-For my milling mold I am working on a project in my filmmaking class where a character has to main a tadpole. So I thought that making a model of the tadpole to use as a prop would be a good and humane way to do this!
+<img src="./squishy.jpeg" alt="First Tadpole is Squishy" width="250" height="300">
 
-My tadpole:
+I tried again using both the original silicone molds, and the new ones. I really pressed the silicone down into the feet as much as I could, and I waited until the fresh sillicone was solidifying but still tacky before putting the halves of the molds together.
 
-<img src="Tadpoleform" alt="Mic and Motor Setup" width="100" height="110">
+These tadpoles had solid bodies and smaller bubbles in the feet!
 
-My tadpole in the mold box:
-<img src="Combiningmoldbox" alt="Mic and Motor Setup" width="100" height="110">
+<img src="./Widelasttadpoles.JPEG" alt="First Tadpole" width="250" height="300">
 
+<img src="./closeuplasttadpoles.JPEG" alt="First Tadpole is Squishy" width="250" height="300">
 
 </xmp>
 </body>
