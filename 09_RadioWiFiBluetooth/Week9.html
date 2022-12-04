@@ -24,16 +24,280 @@
 <xmp style="display:none;">
 <br> 
 
-#### Week 1: Introduction 
+#### Week 9: Radio Wifi and Bluetooth (IoT) 
 
-Here is an image: 
+For this project, Andrew and I initially wanted to make walkie-talkies that communicated with ESP-NOW using this tutorial online <a href="https://www.hackster.io/chris-greening/esp32-walkie-talkie-f8d0dd">here</a>
 
-![image of embroidery](./sew.png)
+However, this tutorial used parts that we did not have, and the part which was supposed to capture and package the sound to send (as for as I understand it) was the main part we were missing. 
 
-And here is a	[link](../index.html).
+<img src="./walkietalkie.PNG" alt="schematic of walkie-talkies" width="250" height="300">
+
+Instead, we decided to do a similar thing using a different system that had been modeled on the randomnerd website. His system has a 2 barometric pressure sensors and 2 screens. Each pressure sensor sends their data to the other ones' screen using ESP-NOW. The end goal was to get the make the tutorial version, then a version that can display morse code messages from the other board.
+
+Most of what I worked on for the project was getting the tutorial to work. <a href="https://randomnerdtutorials.com/esp-now-two-way-communication-esp32/">This is the tutorial webpage.</a>
+
+I thought it would be simple, Andrew and I plugged it all in. Our materials didn't have all the same labels etc. that the tutorial version's did, but we went with what kind of seemed closest to what he did. Like if both pins have a "c" in the name, they must be analagous This was wrong. It did not work. 
+
+With Kasia, I looked at the pinout diagrams for the board randomnerd used and the board that I was using. 
+
+<a href="https://randomnerdtutorials.com/esp32-pinout-reference-gpios//">This</a> page was the pinout reference for the board I was using which we cross-referenced with the schematic details from first randomnerd tutorial page.
+
+
+<a href="https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/">This</a> page importantly outlined the I2C analagous BME device pins to what I was using.
+<img src="./I2CBME.PNG" alt="schematic BME pins" width="250" height="300">
+
+<a href="https://learn.adafruit.com/adafruit-1-14-240x135-color-tft-breakout">This</a> was the I2C OLED display wiring reference when we looked up the version of the OLED board we had in the lab and <a href="https://learn.adafruit.com/adafruit-bme280-humidity-barometric-pressure-temperature-sensor-breakout/arduino-test">This</a> was for the lab's BME sensor.
+
+However. The system still did not work, so I went into the code with Kasia's help.
+
+We changed the void updateDisplay() code so that instead of printing "imcomingReadings" which was referencing a renamed version of what the BME sensor records, so I just had it directly take the measurement instead. So now it was printing bme.read commands.
+
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
+
+    // Display Readings in Serial Monitor
+  Serial.println("INCOMING READINGS");
+  Serial.print("Temperature: ");
+  Serial.println(bme.readTemperature());
+  //Serial.print(incomingReadings.temp);
+  Serial.println(" ºC");
+  Serial.print("Humidity: ");
+  Serial.print(bme.readHumidity());
+  Serial.println(" %");
+  Serial.print("Pressure: ");
+  Serial.print(bme.readPressure() / 100.0F);
+  Serial.println(" hPa");
+  Serial.println();
+
+ </code></pre>
+  </div> 
+
+Then, because when you run BMEtest on the microcontroller, the code references 2 libraries not in the randomnerd code, we added those too.
+
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
+
+  #include <SPI.h>
+#include <Wire.h>
+
+ </code></pre>
+  </div> 
+
+
+  And I hadn't copied over this section of his code propperly in the setup function:
+
+  <div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
+
+  // Init BME280 sensor
+  bool status = bme.begin();  
+  if (!status) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    while (1);
+
+ </code></pre>
+  </div> 
+
+  And it worked!
+
+  <img src="./Working1.JPEG" alt="Two Boards Communicating" width="250" height="300">
+
+ <img src="./Working2.JPEG" alt="One Board Being Communicated To" width="250" height="300">
+  Here is all of the code I used:
+
+  <div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
+
+#include <esp_now.h>
+#include <WiFi.h>
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128  // OLED display width, in pixels
+#define SCREEN_HEIGHT 64  // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+Adafruit_BME280 bme;
+
+// REPLACE WITH THE MAC Address of your receiver 
+uint8_t broadcastAddress[] = {0xC8, 0xF0, 0x9E, 0x47, 0xEF, 0x8C};
+
+// Define variables to store BME280 readings to be sent
+float temperature;
+float humidity;
+float pressure;
+
+// Define variables to store incoming readings
+float incomingTemp;
+float incomingHum;
+float incomingPres;
+
+// Variable to store if sending data was successful
+String success;
+
+//Structure example to send data
+//Must match the receiver structure
+typedef struct struct_message {
+    float temp;
+    float hum;
+    float pres;
+} struct_message;
+
+// Create a struct_message called BME280Readings to hold sensor readings
+struct_message BME280Readings;
+
+// Create a struct_message to hold incoming sensor readings
+struct_message incomingReadings;
+
+esp_now_peer_info_t peerInfo;
+
+// Callback when data is sent
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  if (status ==0){
+    success = "Delivery Success :)";
+  }
+  else{
+    success = "Delivery Fail :(";
+  }
+}
+
+// Callback when data is received
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
+  Serial.print("Bytes received: ");
+  Serial.println(len);
+  incomingTemp = incomingReadings.temp;
+  incomingHum = incomingReadings.hum;
+  incomingPres = incomingReadings.pres;
+}
+ 
+void setup() {
+  // Init Serial Monitor
+  Serial.begin(115200);
+
+  // Init BME280 sensor
+  bool status = bme.begin();  
+  if (!status) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    while (1);
+  }
+
+  // Init OLED display
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+ 
+  // Set device as a Wi-Fi Station
+  WiFi.mode(WIFI_STA);
+
+  // Init ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  // Once ESPNow is successfully Init, we will register for Send CB to
+  // get the status of Trasnmitted packet
+  esp_now_register_send_cb(OnDataSent);
+  
+  // Register peer
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
+  
+  // Add peer        
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
+  // Register for a callback function that will be called when data is received
+  esp_now_register_recv_cb(OnDataRecv);
+}
+ 
+void loop() {
+  getReadings();
+ 
+  // Set values to send
+  BME280Readings.temp = temperature;
+  BME280Readings.hum = humidity;
+  BME280Readings.pres = pressure;
+
+  // Send message via ESP-NOW
+  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &BME280Readings, sizeof(BME280Readings));
+   
+  if (result == ESP_OK) {
+    Serial.println("Sent with success");
+  }
+  else {
+    Serial.println("Error sending the data");
+  }
+  updateDisplay();
+  delay(10000);
+}
+void getReadings(){
+  temperature = bme.readTemperature();
+  humidity = bme.readHumidity();
+  pressure = (bme.readPressure() / 100.0F);
+}
+
+void updateDisplay(){
+  // Display Readings on OLED Display
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.println("INCOMING READINGS");
+  display.setCursor(0, 15);
+  display.print("Temperature: ");
+  display.print(incomingTemp);
+  display.cp437(true);
+  display.write(248);
+  display.print("C");
+  display.setCursor(0, 25);
+  display.print("Humidity: ");
+  display.print(incomingHum);
+  display.print("%");
+  display.setCursor(0, 35);
+  display.print("Pressure: ");
+  display.print(incomingPres);
+  display.print("hPa");
+  display.setCursor(0, 56);
+  display.print(success);
+  display.display();
+  
+  // Display Readings in Serial Monitor
+  Serial.println("INCOMING READINGS");
+  Serial.print("Temperature: ");
+  Serial.println(bme.readTemperature());
+  //Serial.print(incomingReadings.temp);
+  Serial.println(" ºC");
+  Serial.print("Humidity: ");
+  Serial.print(bme.readHumidity());
+  Serial.println(" %");
+  Serial.print("Pressure: ");
+  Serial.print(bme.readPressure() / 100.0F);
+  Serial.println(" hPa");
+  Serial.println();
+}
+
+ </code></pre>
+  </div> 
+
+  Andrew worked mostly on code to get the morse code version to work, we didn't end up having time to synthesize it into the project, because I think we got too carried away trying to make it so the messages workd show up as full words on the display board instead of dots and dashes.
 
 </xmp>
 </body>
+
 
 <script src="../strapdown.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" ></script>

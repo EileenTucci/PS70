@@ -107,6 +107,8 @@ I changed my design to be a rotating microphone that you can put in the center o
 
 My first design for this was going to be built using ultrasonic sensors. My plan was for the motor to have a platform that rotates with microphones on it. There would be one ultrasonic sensor that has the main microphone placed on top of it (this will eventually by an additional microphone that is of better quality than the others and connects to the camera). The logic would go as follows: That if a mic sensed a louder sound than the other microphones, the motor would turn the setup in that direction until the sensor detected something close to it. 
 
+<img src="./fpMVPplan.JPEG" alt="original plan" width="250" height="300">
+
 <img src="./fpMVPoriginaldesign.JPEG" alt="original ultrasonic sensor" width="250" height="300">
 
 The problem with that design would be if three people are talking. Let's say they are sitting in a line in this order: Person 1, Person 2, Person 3. If Person 1 is talking and Person 3 responds, the motor will start to move, but stop at Person 2 because they would be close to it, and the code says the motor should run until the sensor detects something close to it.
