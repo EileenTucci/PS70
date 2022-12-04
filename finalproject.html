@@ -107,24 +107,262 @@ I changed my design to be a rotating microphone that you can put in the center o
 
 My first design for this was going to be built using ultrasonic sensors. My plan was for the motor to have a platform that rotates with microphones on it. There would be one ultrasonic sensor that has the main microphone placed on top of it (this will eventually by an additional microphone that is of better quality than the others and connects to the camera). The logic would go as follows: That if a mic sensed a louder sound than the other microphones, the motor would turn the setup in that direction until the sensor detected something close to it. 
 
+<img src="./fpMVPoriginaldesign.JPEG" alt="original ultrasonic sensor" width="250" height="300">
+
 The problem with that design would be if three people are talking. Let's say they are sitting in a line in this order: Person 1, Person 2, Person 3. If Person 1 is talking and Person 3 responds, the motor will start to move, but stop at Person 2 because they would be close to it, and the code says the motor should run until the sensor detects something close to it.
 
+Here is the sheet where I worked this problem out with Ibrahim's help:
+
+ <img src="./fpMVPredesignwibrahim.JPEG" alt="page of brainstorming" width="250" height="300">
 
 <h5>MVP Design Code</h5>
 
 
-My change to the design was that I had 3 set positions that do not change. Each position has a microphone that sits beneath the rotating platform so that they do not move. I numbered the positions 1, 2, and 3 and the mics in those positions 1, 2, and 3 accordingly in the code. Each is evenly placed around the motor 120 degrees apart. In the code, the idea was to make an if statement for every situation the mics would be in. For example, that if the platform is at position 1 and mic3's sound crosses a threshold, the steppermotor should take 120 degrees of steps in the direction of mic 3, then set its position to 3. 
+My change to the design was that I had 3 set positions that do not change. Each position has a microphone that sits beneath the rotating platform so that they do not move. I numbered the positions 1, 2, and 3 and the mics in those positions 1, 2, and 3 accordingly in the code. Each is evenly placed around the motor 120 degrees apart. 
+
+ <img src="./fpMVPmeasuringmics.JPEG" alt="measuring mics" width="250" height="300">
+
+I put a paper cone around each one to focus the area they were sensing, and to physically label them. 
+
+ <img src="./fpMVPmakingcones.JPEG" alt="paper cones" width="250" height="300">
+
+In the code, the idea was to make an if statement for every situation the mics would be in. For example, that if the platform is at position 1 and mic3's sound crosses a threshold, the steppermotor should take 120 degrees of steps in the direction of mic 3, then set its position to 3. 
 
 To roughtly calibrate the MVP, the platform has an arrow on it and you move the platform so that the arrow points at microphone 1.
 
+ <img src="./fpMVPplatformarrow.JPEG" alt="platform" width="250" height="300">
+
 Here is my code:
+
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
+class Microphone
+
+ {
+ const int sampleWindow = 50; // Sample window width in mS (50 mS = 20Hz)
+ unsigned int sample;
+
+ int Microphonepin;
+
+ unsigned long startMillis= millis();  // Start of sample window
+    unsigned int peakToPeak = 0;   // peak-to-peak level
+
+    unsigned int signalMax = 0;
+    unsigned int signalMin = 1024;
+
+   public: 
+
+   Microphone(int pin)
+{
+   Microphonepin = pin;
+   
+}
+
+int GetSoundLevel()
+{ 
+  startMillis=millis();
+
+  signalMax = 0;
+
+  signalMin = 1024;
+  
+  while ((millis() - startMillis) < sampleWindow)
+  {
+       sample = analogRead(Microphonepin);   //reading DC pin from pin A0
+       if (sample < 1024)  // toss out spurious readings
+       {
+          if (sample > signalMax)
+          {
+             signalMax = sample;  // save just the max levels
+          }
+          else if (sample < signalMin)
+          {
+             signalMin = sample;  // save just the min levels
+          }
+       }
+   }
+    peakToPeak = signalMax - signalMin;
+
+    return peakToPeak;
+}
+    
+ };
+
+Microphone mic1(0);
+Microphone mic2(1);
+Microphone mic3(2);
+
+//motor stuff
+int A1A = 9;
+int A1B = 6;
+int B1A = 11;
+int B1B = 10;
+
+int Pa;
+int Pb;
+
+uint16_t stepnumber = 0;
+
+ void setup() 
+ {
+    Serial.begin(9600);
+
+    // motor stuff
+  pinMode(A1A, OUTPUT);
+  pinMode(A1B, OUTPUT);
+  pinMode(B1A, OUTPUT);
+  pinMode(B1B, OUTPUT);
+ }
+
+ void take_step(int stepnumber, int MAXpower, int wait) {
+  Pa = (sin(stepnumber * 0.098174) * MAXpower);
+  Pb = (cos(stepnumber * 0.098174) * MAXpower);
+
+  if (Pa>0) {
+    analogWrite(A1A,Pa);
+    analogWrite(A1B,0);
+  } else{
+    analogWrite(A1A,0);
+    analogWrite(A1B,abs(Pa));
+  }
+
+  if (Pb>0) {
+    analogWrite(B1A,Pb);
+    analogWrite(B1B,0);
+  } else{
+    analogWrite(B1A,0);
+    analogWrite(B1B,abs(Pb));
+  }
+
+  delayMicroseconds(wait);
+}
+
+void hold(int wait){     // apply max holding torque 
+  analogWrite(A1A, 255);
+  analogWrite(A1B, 0);
+  analogWrite(B1A, 255);
+  analogWrite(B1B, 0);
+  delay(wait);
+}
+
+int long placement = 1;
+ void loop() 
+ {
+
+    Serial.print(mic1.GetSoundLevel());
+    Serial.print(",");
+    Serial.print(mic2.GetSoundLevel());
+    Serial.print(",");
+    Serial.print(mic3.GetSoundLevel());
+    Serial.println();
+// motor stuff
+
+
+
+if ((placement == 1) && (mic2.GetSoundLevel() > 17))
+{
+   for (int i = 1; i < 1067; i++){
+    stepnumber++;
+    take_step(stepnumber, 255, 1000);
+
+  }
+  hold(500);
+  placement = 2;
+}
+
+if ((placement == 2) && (mic1.GetSoundLevel() > 17))
+{
+   for (int i = 1; i < 1067; i--){
+    stepnumber--;
+    take_step(stepnumber, 255, 1000);
+  }
+  hold(500);
+  placement = 1;
+  
+}
+
+if ((placement == 2) && (mic3.GetSoundLevel() > 17))
+{
+   for (int i = 1; i < 1067; i++){
+    stepnumber++;
+    take_step(stepnumber, 255, 1000);
+  }
+  hold(500);
+  placement = 3;
+}
+
+if ((placement == 3) && (mic2.GetSoundLevel() > 17))
+{
+   for (int i = 1; i < 1067; i--){
+    stepnumber--;
+    take_step(stepnumber, 255, 1000);
+
+  }
+  hold(500);
+  placement = 2;
+}
+
+if ((placement == 3) && (mic1.GetSoundLevel() > 17))
+{
+   for (int i = 1; i < 1067; i++){
+    stepnumber++;
+    take_step(stepnumber, 255, 1000);
+
+  }
+  hold(500);
+  placement = 1;
+}
+
+if ((placement == 1) && (mic3.GetSoundLevel() > 17))
+{
+   for (int i = 1; i < 1067; i--){
+    stepnumber--;
+    take_step(stepnumber, 255, 1000);
+  }
+  hold(500);
+  placement = 3;
+}
+   }
+ </code></pre>
+  </div>
 
 This did not work as well as I intended. When you knock on the table next to one of the mics, the arrow does move to another position. But not necessarily the position you knocked on. It also doesn't always respond to the knocking, and you have to try several times. After the second knock, the motor just spins forever.
 
 
 <h5>MVP Physical Design</h5>
 
-I initially thought I could get out of soldering by just wrapping wire into each of the microphone ports. But I ended up with bad connection and not usuing each port which ended up with a lot of things overheating and wires crossing. So I soldered wires to each of the microphones and attached them like they do on the website here: <a href="https://nathanmelenbrink.github.io/ps70/06_input/index.html">Class Website Microphone Setup</a> This involved a lot of wiring when I added in the stepper motor and driver especially NOT DONE!
+I initially thought I could get out of soldering by just wrapping wire into each of the microphone ports. But I ended up with bad connection and not using each port which ended up with a lot of things overheating and wires crossing. 
+
+<img src="./fpMVPredoingmics.JPEG" alt="redoing the mics" width="250" height="300">
+
+So I soldered wires to each of the microphones and attached them to the microcontroller like they do on the website here: <a href="https://nathanmelenbrink.github.io/ps70/06_input/index.html">Class Website Microphone Setup</a> This involved a lot of messy wires I will have to consolidate when I make my final version of the project, especially after I added in the stepper motor and driver. 
+
+<img src="./fpMVPmics1and2.JPEG" alt="mics 1 and 2 in final design" width="250" height="300">
+
+
+I attached the 4 microcontroller wires in order into the ports on the L9110 motor driver. I plugged them into the pwm ports on my board (from A1A to B1B ) 9,6,11, and 10. The motor driver/stepper motor and the microphones all ran off of one microcontroller running off of power from my computer. I attached the ground and Vin pins from my Arduino Uno board to a breadboard and attached the Vin/ground pins for the other elements to this breadboard.
+
+ <img src="./fpMVPfinalwithwiring.JPEG" alt="final wiring" width="250" height="300">
+
+<h5> MVP Test</h5>
+
+<img src="./fpMVPoverheadfinal.JPEG" alt="birds-eye view of final design" width="250" height="300">
+
+
+<iframe src="https://www.youtube.com/shorts/I_LSmOynZu8" style="border:none;" title="MVP Test"></iframe>
+
+
+<h5> Next Step Ideas </h5>
+
+In my next iteration of the project, I would like to put a magnet on the part of the platform where the microphone will be, this will allow me to make it so the device auto calibrates. My plan is to put a Hall sensor next to the position 1 microphone and have the setup code to be that the motor needs to rotate until the position 1 sensor reads the right magnetic field. To do this, I would measure what the magnetic sensor reads when the platform is facing position 1. 
+
+I would also like to add the more sensitive new microphones the lab has to my design. I will add different logic to the code, and have the motor run by a separate power source. I was having trouble getting the stepper motor to turn in both directions and I wonder if that is part of my problem here still. I will fix logic of the code so that the motor never turns all the way around, because that would tangle the wires of the shotgun mic that sits on top of the device and attaches to the camera. 
+
+If that all works, I will also add a feature with the more sensitive microphones where they calibrate that the "room tone" is 0 and that if, say someone is standing between mic 1 and 2 the microphone will turn the correct amount to match where that person is standing. This means that I will have to do some different type of coding the logic than I had for the previous version, where I just listed out all the possibilities.
+
+My goal is to also 3D print everything into a little cylinder with a compartment on the bottom for the microcontroller and motor driver, a space above that for the motor to sit in, and little pockets evenly spaced apart for the microphones to sit in. The top platform will be more of a rail in this design that the main microphone can slide onto and the bottom of the device will have a 3D printed design of the attachment piece that the main microphone has now, so the whole thing can fit on a camera.
+
+
 
 
 
