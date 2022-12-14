@@ -1,0 +1,110 @@
+ <!DOCTYPE html>
+<html lang="en">
+
+<title>PS70: Intro to Digital Fabrication </title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="./style.css" rel="stylesheet">
+  <!--top of nav bar-->
+
+<nav class="navbar navbar-expand-sm navbar-light bg-light">
+  <div style="align-items: left; justify-content:left;" class="container-fluid">
+    <h3 class="nav-title"> PS70: Intro to Digital Fabrication</h3>
+    <div class="navbar-nav">
+      <h4><a class="nav-link" href="./index.html">Home</a></h4>
+      <h4><a class="nav-link" href="./about.html">About</a></h4>
+     <h4><a class="nav-link" href="./finalproject.html">Final Project</a></h4>
+    </div>
+  </div>
+</nav>
+
+<body>
+<!--navigation bar at top of page--> 
+
+
+<xmp style="display:none;">
+<!--everything in page body following css style page in downloads folder-->
+
+### Clean Documentation
+
+<center><b>Final Documentation</b></center>
+<br>
+Introducing: TurntoTalk: the self-adjusting camera microphone prototype
+
+video:
+https://studio.youtube.com/video/Hs8UsBA1GTg/edit
+
+<h5>Story:</h5>
+
+This semester I took a class called documentary filmmaking, where you film over the summer and then you edit your footage into a film. When I was editing my footage, I realized a lot of the interviews I shot with two people were almost unusable. In documentaries, you can use a shotgun mic, or a very precise mic that only works for a very specific region on top of your camera to record crisp, useable audio. But what if there are two people? You just put the microphone between them? This project which would rotate a camera microphone to the person who is talking, so you don’t have to make crazy camera movements just for the sake of good sound!
+
+
+<h5>Project Overview:</h5>
+
+My project is a step towards a prototype of an attachment you can put on a camera that attaches to the microphone. This attachment will rotate according to the sound produced in the room by the people talking, so that even if your subject moves when your camera is on a tripod, but they are still in frame, you won’t lose the sound of their voice because the microphone will move with them.
+
+My final project ended up being more of a diagram or design prototype. When I was running my code in an unsoldered mock-up of the final version of the project, the motor would turn erratically. I decided to solder the machine together before further testing, this turned out to be more complicated in my design than I had originally thought!
+
+
+<h5>Microphones</h5>
+The microphones I used were Adafruit I2S MEMS Microphone Breakout - SPH0645LM4H
+How the wiring works: (screenshot from that guy’s github)
+In order to use these microphones I needed to calibrate them a) to make sure they were operating off of the same scale, with both of them roughly reading zero in a quiet-ish room and b) how much change in the ratios of mic2loudness/totalrecordedloudness means the location of the sound has changed. 
+To calibrate them, I put them 8 mm apart, just like they are in their 3D print top body case. Because I could not find a protractor, I took a pizza plate, an existing circle, and folded it in half. Then I folded sections of it and marked the fold lines with a pencil until the semicircle was split into 8 sections by 7 fold lines. I recorded the readings off of both microphones looking at the serial plotter when I placed my phone, (with the speaker on the bottom of my phone facing towards the inside of the circle) playing "Long Beep" By Finnolia Sound Effects on Spotify at full volume. It looked like both microphones never hit zero, and microphone 1 recorded everything higher than microphone 2. I subtracted values from both readings, so that when the program returns the microphone volume readings, both microphones record about 0 when SC 102 does not have people or machines making noise in it. I then repeated the calibration and recorded the new volumes for each microphone and calculated their mic1 and mic2loudness/totalrecordedloudness and discovered that for those relatively large angle changes, the signal ratio I measured sometimes only changed by 3/100ths. So, I put in my final code that the motor should only move if the ratio changes by more than 1/100, so it is sensitive, without braking.
+The microphones were working in the final test. This is the code I (with lots of help from Kassia and PK and Nathan) adapted from the volume example here: https://github.com/maspetsberger/esp32-i2s-mems/blob/master/examples/VUMeterDemo/VUMeterDemo.ino
+The microphones did record correctly in my last test, and through soldering until I stopped.
+
+<h5>3D prints</h5>
+To start, I took measurements of the components using the calipers in the lab. Below are the notes I made on how to sketch up the drawings: 
+The idea of the design was to have 3 components, bottom body, top body, and microphone track. I would have a separate microphone track for the camera microphone to rotate on top of the cylinder and two parts to the body so that I can put the microcontroller under the motor so that if this ever was on a camera, it would stay compact and not sprawl out over the entire width of the camera.
+To make the bottom body, I created a hollow open cylinder in fusion and put a hole in the bottom for the wires to connect to their external power source. In hindsight this probably should have been on the side of the cylinder, so the bottom of the cylinder could rest evenly on the ground. This component has a lip at the top for the top body to rest in.
+The top body has a hole in the bottom as well, for the wires to travel through to get the the microcontroller and motor driver. It also has an enclosed square so the stepper motor can snap into it and be secured there. On opposite sides are holes for the microphones. They have indents the size of the full microphone with square windows through the plastic for the actual microphone on the microphone board to read as much sound as possible. I measured the microphones without their connections, so they did not quite fit. They are angled in their holes a little bit, but a touch of tape keeps them in place! On one side between the two microphones is space for the limit switch. It is a little divot the size and height of the limit switch in the uppermost layers of the top body cylinder.
+Perfectly snapped onto the top of the stepper motor was my microphone track, it is a negative of the track that comes with the Rode microphone (my demonstration camera microphone I was using). The Rode microphone can slide right onto it and tighten to stay. 
+
+
+Put in the drawings
+Put in the stl and the gcode
+There are little tabs for the microcontroller, I took those out because they were too far apart and not tall enough for the microcontroller to snap into place. I should have measured the depth of the microphone with the metal edges of the ports, they fit in perfectly without them, but when I was trying to put them in after they were soldered, they were slanted and the for did not seem as reliable, so I taped them in for security. In the future, I would reprint the top-body component. I would also put the hole for wires in the bottom of the bottom body in the side and make the mic track component a little bit longer so it can press the limit switch more firmly.
+
+<h5>Wirings</h5>
+Wiring diagram
+Pictures of the original wiring
+The above is how this project is supposed to be wired, with the soldering and everything, it is not rewired right now, but this is the reference for when it is.
+
+<h5>Microcontroller Programming</h5>
+
+My board is an Adafruit Huzzah board. The goal of the code is to zero the stepper motor so that position 0 is where microphone 1’s location is. Then it will read the two microphones, then it will take the number of steps proportional to Microphone 2’s volume divided by Microphone 1 and 2’s volume. To do this, I would multiply the ratio by 500 to get the absolute position for the motor to turn to. I was just going to have the microphone face one side and rotate 180 degrees between the two microphones. The code I was referencing for moving the stepper motor was from the class website found here: https://nathanmelenbrink.github.io/ps70/10_machines/index.html at the bottom in the example for the MCU driver and the accelstepper library. It has the stepper motor loop “stepper.moveTo(rand() % 1000);” which I took to mean if rand() is finding a random number between 1 and negative 1 and then multiplying it by 1000 to show the full range of the motor, that the motor can turn around a total of 1000 steps with this code and driver. Meaning that if I only want it to go through half of its range of motion while it is moving based off of microphone sounds, it should multiply the ratio of mic 2 loudness to total loudness by 500 to moveTo() the correct absolute position.
+Add here the version where you walk through everything on paper saying: This is an example of some of the pseudocode I wrote out before I was using the Accelstepper library and I was planning on doing the project with an L9110 and microstepping. Therefore this version includes mentions of ways I can store the number of past steps taken, and control the placement of the microphone without a way to move to an absolute position, but only take steps relative to your current position.
+The code I adapted for the limit switch is from a RandomNerd tutorial: https://arduinogetstarted.com/tutorials/arduino-limit-switch
+More specific logic and sources are commented in my code below: (put it in in the scrolly way)
+Download my code here!
+
+<h5>Limit Switch</h5>
+I used a Cylewet AC 1A 125V 3Pin SPDT Limit Micro Switch Long Hinge Lever for Arduino. I wired it based on this tutorial: https://arduinogetstarted.com/tutorials/arduino-limit-switch
+I used the library called in this tutorial, ezButton, in my final code. Initially, I copied over the RandomNerd code and used it to test the limit switch. The readings were very unstable. PK helped me look up the documentation for the ezButton library which uses the pull-up resistor in the arduino uno board. Because I was not using an arduino board, I moved the pin for the limit switch reading to pin number 12 on the Huzzah board because that pin has a pull-down resistor. The readings were much more consistent after that!
+It is located on the top rim of the top body. When I manually pushes the stepper motor in the counterclockwise direction, it does manage to press down the limit switch, but not as much as I would have liked, and I would redesign the microphone track to be a little bit longer in a future version to be able to press the switch down a little bit more firmly. I believe there is some trouble with the limit switch in the code I made that is commented about in that section of the code.
+
+<h5>Motor</h5>
+What motor is it?
+I used a NEMA 17 stepper motor in this project. And an A4988 driver by using this website for information on how to set it up: https://www.pololu.com/product/1182. I used code from the website to test it using the code at the bottom of this class page: https://nathanmelenbrink.github.io/ps70/10_machines/index.html. I used the accelstepper library found here: http://www.airspayce.com/mikem/arduino/AccelStepper/classAccelStepper.html#ace236ede35f87c63d18da25810ec9736
+When I tested my final code in the loosely wired final prototype (using pin-socket and socket-socket wires, breadboards etc.) the motor started to move when I pressed down on the wires connected to the driver on the breadboard. This meant it needed better connections, and I would probably have to solder everything together to continue to test my design. Unfortunately, I am not an advance solder-er and this took more time than expected, I did not finish due to connections breaking and redoing them, and generally taking more time than I had anticipated! I should have gotten more practice soldering during classes, but I had avoided it pretty successfully until I made my MVP and that was not nearly enough practice for this.
+
+
+<h5>Takeaways as of 12/13 at 10 am:</h5>
+My computer/arduino is refusing to read any ports right now, so I cannot test the mechanisms as I solder them and put them into place, I also cannot upload my final code to the boards. I am going to keep it as it is in a deconstructed version with hopefully helpful visuals to explain what my prototype was designed to do and how it was designed to do it!
+
+<h5> Final things </h5>
+Kassia helped me solder the motor into position, and use pin/socket wires for the other connections. The function was getting stuck at the limit function loop in the setup function. By moving the limit switch into the void loop() in the while(). When that code was set up and the 
+
+<h5>If I had more time:</h5>
+Solder everything together, and re-print making the holes for the wires bigger, and move the hole that is in the bottom of the mechanism for wiring to power to the side, so it can rest easily on the table.
+I don’t know how well the Accelstepper library works for this project, because the wiring difficulties prevented me from testing it fully.
+
+
+
+</xmp>
+</body>
+
+<script src="./strapdown.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" ></script>
+
+</html>
