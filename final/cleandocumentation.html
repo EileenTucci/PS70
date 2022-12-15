@@ -30,8 +30,9 @@
 <br>
 Introducing: TurntoTalk: the self-adjusting camera microphone prototype
 
-video:
+Video:
 https://studio.youtube.com/video/Hs8UsBA1GTg/edit
+(uses royalty-free music called "Please Calm my Mind")
 
 <h5>Story:</h5>
 
@@ -47,57 +48,772 @@ My final project ended up being more of a diagram or design prototype. When I wa
 
 <h5>Microphones</h5>
 The microphones I used were Adafruit I2S MEMS Microphone Breakout - SPH0645LM4H
-How the wiring works: (screenshot from that guy’s github)
+How the wiring works: 
+
+<img src="screenshotofhowtowire.PNG" alt="how to wire based on github" width="100" height="110">
+
 In order to use these microphones I needed to calibrate them a) to make sure they were operating off of the same scale, with both of them roughly reading zero in a quiet-ish room and b) how much change in the ratios of mic2loudness/totalrecordedloudness means the location of the sound has changed. 
-To calibrate them, I put them 8 mm apart, just like they are in their 3D print top body case. Because I could not find a protractor, I took a pizza plate, an existing circle, and folded it in half. Then I folded sections of it and marked the fold lines with a pencil until the semicircle was split into 8 sections by 7 fold lines. I recorded the readings off of both microphones looking at the serial plotter when I placed my phone, (with the speaker on the bottom of my phone facing towards the inside of the circle) playing "Long Beep" By Finnolia Sound Effects on Spotify at full volume. It looked like both microphones never hit zero, and microphone 1 recorded everything higher than microphone 2. I subtracted values from both readings, so that when the program returns the microphone volume readings, both microphones record about 0 when SC 102 does not have people or machines making noise in it. I then repeated the calibration and recorded the new volumes for each microphone and calculated their mic1 and mic2loudness/totalrecordedloudness and discovered that for those relatively large angle changes, the signal ratio I measured sometimes only changed by 3/100ths. So, I put in my final code that the motor should only move if the ratio changes by more than 1/100, so it is sensitive, without braking.
+To calibrate them, I put them 8 mm apart, just like they are in their 3D print top body case. Because I could not find a protractor, I took a pizza plate, an existing circle, and folded it in half. Then I folded sections of it and marked the fold lines with a pencil until the semicircle was split into 8 sections by 7 fold lines. I recorded the readings off of both microphones looking at the serial plotter when I placed my phone, (with the speaker on the bottom of my phone facing towards the inside of the circle) playing "Long Beep" By Finnolia Sound Effects on Spotify at full volume. 
+
+<img src="calibrationsetup.JPEG" alt="set up for calibrating the microphones" width="100" height="110">
+
+<iframe src="https://docs.google.com/spreadsheets/d/1D8eODK3z0LU1HYx8FZJLNve7Bqy3NbgljrPGzHKiA-c/edit#gid=0" title="graph and table" width="750" height="600" ></iframe>
+
+It looked like both microphones never hit zero, and microphone 1 recorded everything higher than microphone 2. I subtracted values from both readings, so that when the program returns the microphone volume readings, both microphones record about 0 when SC 102 does not have people or machines making noise in it. I then repeated the calibration and recorded the new volumes for each microphone and calculated their mic1 and mic2loudness/totalrecordedloudness and discovered that for those relatively large angle changes, the signal ratio I measured sometimes only changed by 3/100ths. So, I put in my final code that the motor should only move if the ratio changes by more than 1/100, so it is sensitive, without braking.
 The microphones were working in the final test. This is the code I (with lots of help from Kassia and PK and Nathan) adapted from the volume example here: https://github.com/maspetsberger/esp32-i2s-mems/blob/master/examples/VUMeterDemo/VUMeterDemo.ino
 The microphones did record correctly in my last test, and through soldering until I stopped.
 
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
+
+#include <driver/i2s.h>
+
+const i2s_port_t I2S_PORT_mic1 = I2S_NUM_0;
+const i2s_port_t I2S_PORT_mic2 = I2S_NUM_1;
+
+const int BLOCK_SIZE = 128;
+esp_err_t err;
+
+class Microphone
+{
+  i2s_pin_config_t pin_config;
+  int32_t samples[BLOCK_SIZE];
+
+  public:
+  Microphone(i2s_pin_config_t _pin_config)
+  {
+    pin_config = _pin_config;
+    Serial.println("Pin configuration initialized"); 
+  }
+
+
+  void start(const i2s_port_t I2S_PORT)
+  {
+    err = i2s_set_pin(I2S_PORT, &pin_config);
+    if (err != ESP_OK) {
+      Serial.printf("Failed setting pin: %d\n", err);
+      while (true);
+    }
+    Serial.printf("Success");
+  }
+
+   float Update(const i2s_port_t I2S_PORT)
+  {
+    size_t bytes_read;
+    esp_err_t result = i2s_read(I2S_PORT,
+                                (char *)&samples,
+                                sizeof(int32_t) * BLOCK_SIZE, &bytes_read,     // the doc says bytes, but its elements.
+                                portMAX_DELAY); // no timeout
+   
+    int samples_read = bytes_read / sizeof(int32_t);
+    if (samples_read > 0) {
+ 
+      float mean = 0;
+      for (int i = 0; i < samples_read; ++i) {
+        mean += (samples[i] >> 14);
+      }
+      mean /= samples_read;
+ 
+      float maxsample = -1e8, minsample = 1e8;
+      for (int i = 0; i < samples_read; ++i) {
+        minsample = min(minsample, samples[i] - mean);
+        maxsample = max(maxsample, samples[i] - mean);
+      }
+      return (maxsample - minsample);
+    }
+  }
+};
+
+
+
+const i2s_pin_config_t pin_config1 = {//small breadboard
+      .bck_io_num = 22,   // BCKL
+      .ws_io_num = 32,    // LRCL
+      .data_out_num = -1, // not used (only for speakers)
+      .data_in_num = 14   // DOUT
+  };
+
+const i2s_pin_config_t pin_config2 = {//big breadboard
+      .bck_io_num = 33,   // BCKL
+      .ws_io_num = 15,    // LRCL
+      .data_out_num = -1, // not used (only for speakers)
+      .data_in_num = 23   // DOUT
+  };
+ 
+ Microphone mic1(pin_config1);
+ Microphone mic2(pin_config2);
+
+
+void setup()
+{
+  Serial.begin(115200);
+  Serial.println("Configuring I2S...");
+
+   const i2s_config_t i2s_config = {
+      .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX), // Receive, not transfer
+      .sample_rate = 16000,                         // 16KHz
+      .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT, // could only get it to work with 32bits
+      .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT, // although the SEL config should be left, it seems to transmit on right
+      .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
+      .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,     // Interrupt level 1
+      .dma_buf_count = 4,                           // number of buffers
+      .dma_buf_len = BLOCK_SIZE                     // samples per buffer
+  };
+
+  
+ err = i2s_driver_install(I2S_PORT_mic1, &i2s_config, 0, NULL);
+  if (err != ESP_OK) {
+    Serial.printf("Failed installing driver: %d\n", err);
+    while (true);
+  }
+  Serial.println("I2S driver for MIC 1 installed.");
+
+  err = i2s_driver_install(I2S_PORT_mic2, &i2s_config, 0, NULL);
+    if (err != ESP_OK) {
+      Serial.printf("Failed installing driver: %d\n", err);
+      while (true);
+    }
+  Serial.println("I2S driver for MIC 2 installed.");
+
+  Serial.println("Starting Mic 1");
+  mic1.start(I2S_PORT_mic1);
+  Serial.println("Starting Mic 2");
+  mic2.start(I2S_PORT_mic2);
+}
+  
+void loop() {
+  
+float mic1sound = (mic1.Update(I2S_PORT_mic1) - 1.55e8);
+float mic2sound = (mic2.Update(I2S_PORT_mic2) - 1.2e8 - 2500000); 
+
+  Serial.print("Variable_1:");
+  Serial.println(mic1sound);
+  Serial.print(",");
+  Serial.print("Variable_2:");
+  Serial.println(mic2sound);
+
+}
+
+   </code></pre>
+  </div>
+
 <h5>3D prints</h5>
+
+<img src="3Dprintsinmachine.JPEG" alt="3D prints being made" width="100" height="110">
 To start, I took measurements of the components using the calipers in the lab. Below are the notes I made on how to sketch up the drawings: 
+<img src="more3Dprintsinmachine.JPEG" alt="more 3D prints being made" width="100" height="110">
 The idea of the design was to have 3 components, bottom body, top body, and microphone track. I would have a separate microphone track for the camera microphone to rotate on top of the cylinder and two parts to the body so that I can put the microcontroller under the motor so that if this ever was on a camera, it would stay compact and not sprawl out over the entire width of the camera.
 To make the bottom body, I created a hollow open cylinder in fusion and put a hole in the bottom for the wires to connect to their external power source. In hindsight this probably should have been on the side of the cylinder, so the bottom of the cylinder could rest evenly on the ground. This component has a lip at the top for the top body to rest in.
+<img src="printwithmotor.JPEG" alt="Motor in the print" width="100" height="110">
 The top body has a hole in the bottom as well, for the wires to travel through to get the the microcontroller and motor driver. It also has an enclosed square so the stepper motor can snap into it and be secured there. On opposite sides are holes for the microphones. They have indents the size of the full microphone with square windows through the plastic for the actual microphone on the microphone board to read as much sound as possible. I measured the microphones without their connections, so they did not quite fit. They are angled in their holes a little bit, but a touch of tape keeps them in place! On one side between the two microphones is space for the limit switch. It is a little divot the size and height of the limit switch in the uppermost layers of the top body cylinder.
 Perfectly snapped onto the top of the stepper motor was my microphone track, it is a negative of the track that comes with the Rode microphone (my demonstration camera microphone I was using). The Rode microphone can slide right onto it and tighten to stay. 
 
+<img src="someofmyprintdiagrams.JPEG" alt="drawings to plan the prints" width="100" height="110">
 
-Put in the drawings
-Put in the stl and the gcode
+<a download href='./bottomofmicbasev1.stl.stl'>Download my STL of the bottom </a>
+<a download href='./topofbasemicv2.stl.stl'>Download my STL of the top </a>
+<a download href='./trackformicv3.stl.stl'>Download my STL of the mic track </a>
+<a download href='./_bottom of mic base.243666c4-734c-4499-9f88-6792bb316d69.f3d'>Download my Fusion Design bottom </a>
+<a download href='./_top of base mic.5012af67-7226-4017-b96e-733cb6f4032c.f3d'>Download my Fusion Design top </a>
+<a download href='./_track for mic.b1789ba0-cf51-4915-8dbb-693580e8ea0b.f3d'>Download my Fusion Design mic track </a>
+<a download href='./EileenMicStand1.gcode'>Download my gcode </a>
+
 There are little tabs for the microcontroller, I took those out because they were too far apart and not tall enough for the microcontroller to snap into place. I should have measured the depth of the microphone with the metal edges of the ports, they fit in perfectly without them, but when I was trying to put them in after they were soldered, they were slanted and the for did not seem as reliable, so I taped them in for security. In the future, I would reprint the top-body component. I would also put the hole for wires in the bottom of the bottom body in the side and make the mic track component a little bit longer so it can press the limit switch more firmly.
 
 <h5>Wirings</h5>
-Wiring diagram
+This is how the wiring looks on the breadboard set ups
+<img src="viewofwiringfromlimitswitch.JPEG" alt="Wiring on Breadboard" width="100" height="110">
+<img src="wiringofthesetup.JPEG" alt="Wiring on Breadboard" width="100" height="110">
+<img src="wiringofthemicrophone.JPEG" alt="Wiring of the Microphone" width="100" height="110">
+<img src="wiringofmotordriver.JPEG" alt="Wiring of the Driver" width="100" height="110">
+<img src="wiresonthemicrocontroller.JPEG" alt="Wiring on the microcontroller" width="100" height="110">
+<img src="birdseyeofsetup.JPEG" alt="Birds-eye view of wiring" width="100" height="110">
+
 Pictures of the original wiring
-The above is how this project is supposed to be wired, with the soldering and everything, it is not rewired right now, but this is the reference for when it is.
+<img src="wiringdiagram.JPEG" alt="Diagram of the Wiring" width="100" height="110">
+
+The above is how this project is supposed to be wired, with the soldering and everything!.
+
+And here are the microphones and driver after I soldered them:
+
+<img src="solderedmicrophones.JPEG" alt="Soldering of the microphones" width="100" height="110">
+<img src="soldereddriver.JPEG" alt="Soldering of the motor driver" width="100" height="110">
+
 
 <h5>Microcontroller Programming</h5>
 
 My board is an Adafruit Huzzah board. The goal of the code is to zero the stepper motor so that position 0 is where microphone 1’s location is. Then it will read the two microphones, then it will take the number of steps proportional to Microphone 2’s volume divided by Microphone 1 and 2’s volume. To do this, I would multiply the ratio by 500 to get the absolute position for the motor to turn to. I was just going to have the microphone face one side and rotate 180 degrees between the two microphones. The code I was referencing for moving the stepper motor was from the class website found here: https://nathanmelenbrink.github.io/ps70/10_machines/index.html at the bottom in the example for the MCU driver and the accelstepper library. It has the stepper motor loop “stepper.moveTo(rand() % 1000);” which I took to mean if rand() is finding a random number between 1 and negative 1 and then multiplying it by 1000 to show the full range of the motor, that the motor can turn around a total of 1000 steps with this code and driver. Meaning that if I only want it to go through half of its range of motion while it is moving based off of microphone sounds, it should multiply the ratio of mic 2 loudness to total loudness by 500 to moveTo() the correct absolute position.
-Add here the version where you walk through everything on paper saying: This is an example of some of the pseudocode I wrote out before I was using the Accelstepper library and I was planning on doing the project with an L9110 and microstepping. Therefore this version includes mentions of ways I can store the number of past steps taken, and control the placement of the microphone without a way to move to an absolute position, but only take steps relative to your current position.
+
+This is an example of some of the pseudocode I wrote out before I was using the Accelstepper library and I was planning on doing the project with an L9110 and microstepping. 
+<img src="codeplan.JPEG" alt="more 3D prints being made" width="100" height="110">
+
+Therefore this version includes mentions of ways I can store the number of past steps taken, and control the placement of the microphone without a way to move to an absolute position, but only take steps relative to your current position.
 The code I adapted for the limit switch is from a RandomNerd tutorial: https://arduinogetstarted.com/tutorials/arduino-limit-switch
-More specific logic and sources are commented in my code below: (put it in in the scrolly way)
-Download my code here!
+More specific logic and sources are commented in my code below: 
+
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
+
+#include <AccelStepper.h>
+#include <ezButton.h>
+#include <driver/i2s.h>
+
+ezButton limitSwitch(12); 
+
+//for motor
+const int stepPin = 27;  
+const int dirPin = 13;   
+
+//for moving to sound loop
+float lastmoveinterval = 0; // setting up to store the past ratio for ending loop to see of motor should move the mic
+float interval; // stores microphone relative volumes so that the motor knows how much to turn
+
+// Define a stepper and the pins it will use
+AccelStepper stepper(1, stepPin, dirPin); // initialise accelstepper for a two wire board
+
+
+//microphone stuff
+const i2s_port_t I2S_PORT_mic1 = I2S_NUM_0; //setting up and defining microphone code is adapted from:
+                                            // https://github.com/maspetsberger/esp32-i2s-mems/blob/master/examples/VUMeterDemo/VUMeterDemo.ino
+                                            //using i2s_read() because the previous function was deprecated
+const i2s_port_t I2S_PORT_mic2 = I2S_NUM_1; // ESP 32 can configure any pin to be I2S, but only has two channels
+                                            // As far as I can tell from my googling, there is a way to hook up
+                                            // 4 I2S microphones, with recording "right" and "left" to each channel
+                                            // Honestly, I have no coding background and 2 was enough for me 
+                                            //so I dropped the 3rd microphone present in the original design and MVP
+
+const int BLOCK_SIZE = 128;
+esp_err_t err;
+
+class Microphone
+{
+  i2s_pin_config_t pin_config;
+  int32_t samples[BLOCK_SIZE];
+
+  public:
+  Microphone(i2s_pin_config_t _pin_config)
+  {
+    pin_config = _pin_config;
+    Serial.println("Pin configuration initialized"); 
+  }
+
+
+  void start(const i2s_port_t I2S_PORT)
+  {
+    err = i2s_set_pin(I2S_PORT, &pin_config);
+    if (err != ESP_OK) {
+      Serial.printf("Failed setting pin: %d\n", err);
+      while (true);
+    }
+    Serial.printf("Success");
+  }
+
+   float Update(const i2s_port_t I2S_PORT)
+  {
+    size_t bytes_read;
+    esp_err_t result = i2s_read(I2S_PORT,
+                                (char *)&samples,
+                                sizeof(int32_t) * BLOCK_SIZE, &bytes_read,     // the doc says bytes, but its elements, I changed this from 
+                                                                               // the original so that the code consistently treats the samples as an array
+                                                                             
+                                portMAX_DELAY); // no timeout
+   
+    int samples_read = bytes_read / sizeof(int32_t);
+    if (samples_read > 0) {
+ 
+      float mean = 0;
+      for (int i = 0; i < samples_read; ++i) {
+        mean += (samples[i] >> 14);
+      }
+      mean /= samples_read;
+ 
+      float maxsample = -1e8, minsample = 1e8;
+      for (int i = 0; i < samples_read; ++i) {
+        minsample = min(minsample, samples[i] - mean);
+        maxsample = max(maxsample, samples[i] - mean);
+      }
+      return (maxsample - minsample);
+    }
+  }
+};
+
+
+
+const i2s_pin_config_t pin_config1 = {//Small breadboard/yellow wires! (depending on the stage you are looking at)
+      .bck_io_num = 22,   // BCKL
+      .ws_io_num = 32,    // LRCL
+      .data_out_num = -1, // not used (only for speakers)
+      .data_in_num = 14   // DOUT
+  };
+
+const i2s_pin_config_t pin_config2 = {//Big breadboard/green wires! (depending on the stage you are looking at)
+      .bck_io_num = 33,   // BCKL
+      .ws_io_num = 15,    // LRCL
+      .data_out_num = -1, // not used (only for speakers)
+      .data_in_num = 23   // DOUT
+  };
+ 
+ Microphone mic1(pin_config1);
+ Microphone mic2(pin_config2);
+
+
+void setup()
+{
+  Serial.begin(115200);
+  Serial.println("Configuring I2S...");
+
+   const i2s_config_t i2s_config = {
+      .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX), // Receive, not transfer
+      .sample_rate = 16000,                         // 16KHz
+      .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT, // could only get it to work with 32bits
+      .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT, // although the SEL config should be left, it seems to transmit on right
+      .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
+      .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,     // Interrupt level 1
+      .dma_buf_count = 4,                           // number of buffers
+      .dma_buf_len = BLOCK_SIZE                     // samples per buffer
+  };
+
+  
+ err = i2s_driver_install(I2S_PORT_mic1, &i2s_config, 0, NULL);
+  if (err != ESP_OK) {
+    Serial.printf("Failed installing driver: %d\n", err);
+    while (true);
+  }
+  Serial.println("I2S driver for MIC 1 installed.");
+
+  err = i2s_driver_install(I2S_PORT_mic2, &i2s_config, 0, NULL);
+    if (err != ESP_OK) {
+      Serial.printf("Failed installing driver: %d\n", err);
+      while (true);
+    }
+  Serial.println("I2S driver for MIC 2 installed.");
+
+  Serial.println("Starting Mic 1");
+  mic1.start(I2S_PORT_mic1);
+  Serial.println("Starting Mic 2");
+  mic2.start(I2S_PORT_mic2);
+
+  limitSwitch.loop();// In the randomnerd tutorial I used to get my initial limit switch code, 
+                      // "// MUST call the loop() function first" is listed next to where he 
+                      // calls this in the loop. However, arduino has issues with me putting
+                      // this into my "faux loop" (the while) so I put it outside.
+                      //This setup never happened when I ran my code in the prototype. I am not sure whether this function may
+                      //have messed up the while loop, or if it was just a wiring problem.
+                      //I assume it is not just a wiring problem because the serial.Print in the void loop() worked.
+       
+  while (limitSwitch.getState() == HIGH) // If nothing flips the limit switch, continue to move
+  {
+//    limitSwitch.loop();
+    stepper.move(-100); // it will move in counterclockwise to the starting position
+                      // this is because the motor will not be able to pass over the switch heading clockwise
+   
+    stepper.run();
+  }
+   stepper.move(-250);                  // If something fips the limit switch, continue for a quarter of a turn
+                                        // in the same direction (turning from the limit switch to where mic1 is
+   stepper.setMaxSpeed(5);
+   stepper.setAcceleration(5);
+   
+   stepper.run;
+  
+   stepper.setCurrentPosition(0); // Set position of mic 1 to 0
+}
+
+  
+ 
+
+void loop()
+{
+float mic1sound = (mic1.Update(I2S_PORT_mic1) - 1.55e8); // call the manually calibrated valoume of mic 1
+float mic2sound = (mic2.Update(I2S_PORT_mic2) - 1.2e8 - 2500000); // call the mannually callibrated volume of mic 2
+   
+//  stepper.run(); //According to PK, the stepper.move.To() function seemed to think you had to call "run" before "move.To"
+//                 // From the arduino accelstepper class website: 
+//                 //Set the target position. The run() function will try to move the motor (at most one step per call) 
+//                 //from the current position to the target position set by the most recent call to this function. 
+//                 //Caution: moveTo() also recalculates the speed for the next step. If you are trying to use constant 
+//                 //speed movements, you should call setSpeed() after calling moveTo().
+//                //Parameters
+//                //[in] absolute  The desired absolute position. Negative is anticlockwise from the 0 position.
+//                //References computeNewSpeed().
+//                //Referenced by move(), MultiStepper::moveTo(), and runToNewPosition().
+//                //  Serial.println("is it here?"); //this showed up on the last serial print!
+//                //http://www.airspayce.com/mikem/arduino/AccelStepper/classAccelStepper.html#ace236ede35f87c63d18da25810ec9736
+
+//  if (stepper.distanceToGo() == 0) // once the motor stops moving (because the sound of it moving will produce
+//                                   // extra sound that could interfere)
+//  {
+// 
+   interval = ((mic2sound)/(mic1sound + mic2sound)); // find the ratio of mic2sound to the total sound
+    if (abs(interval-lastmoveinterval) >= 0.01)       // if the change in sound measured between the two mics 
+                                                      //is significant based on my rough calibration.
+    {
+      stepper.moveTo(interval*500);
+      stepper.setMaxSpeed(5);
+      stepper.setAcceleration(5);// As PK explained to me, if 1 was recording zero sound, and 2 all the sound,
+                                    // mic2sound/(mic1sound + mic2sound) would be 1. The original test code I got 
+                                    // the 
+      Serial.println("or here?"); // this did not print, so the problem is somewhere in between, Suvin
+                                   // suggested it could be because the stepper.run function calls the stepper motor
+                                   // to run without stopping, so the program never moves on.
+      lastmoveinterval = interval; // reset the lastmoveinterval so that the device can tell whether the next
+                                   // ratio measured is significant enough to move.
+    }
+    stepper.run();
+  }
+
+   </code></pre>
+  </div>
 
 <h5>Limit Switch</h5>
 I used a Cylewet AC 1A 125V 3Pin SPDT Limit Micro Switch Long Hinge Lever for Arduino. I wired it based on this tutorial: https://arduinogetstarted.com/tutorials/arduino-limit-switch
 I used the library called in this tutorial, ezButton, in my final code. Initially, I copied over the RandomNerd code and used it to test the limit switch. The readings were very unstable. PK helped me look up the documentation for the ezButton library which uses the pull-up resistor in the arduino uno board. Because I was not using an arduino board, I moved the pin for the limit switch reading to pin number 12 on the Huzzah board because that pin has a pull-down resistor. The readings were much more consistent after that!
 It is located on the top rim of the top body. When I manually pushes the stepper motor in the counterclockwise direction, it does manage to press down the limit switch, but not as much as I would have liked, and I would redesign the microphone track to be a little bit longer in a future version to be able to press the switch down a little bit more firmly. I believe there is some trouble with the limit switch in the code I made that is commented about in that section of the code.
 
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
+
+/*
+ * Created by ArduinoGetStarted.com
+ *
+ * This example code is in the public domain
+ *
+ * Tutorial page: https://arduinogetstarted.com/tutorials/arduino-limit-switch
+ */
+
+#include <ezButton.h>
+
+ezButton limitSwitch(12);  // create ezButton object that attach to pin 7;
+
+void setup() {
+  Serial.begin(9600);
+  limitSwitch.setDebounceTime(50); // set debounce time to 50 milliseconds
+}
+
+void loop() {
+  limitSwitch.loop(); // MUST call the loop() function first
+
+  if(limitSwitch.isPressed())
+    Serial.println("The limit switch: UNTOUCHED -> TOUCHED");
+
+  if(limitSwitch.isReleased())
+    Serial.println("The limit switch: TOUCHED -> UNTOUCHED");
+
+  int state = limitSwitch.getState();
+  if(state == HIGH)
+    Serial.println("The limit switch: UNTOUCHED");
+  else
+    Serial.println("The limit switch: TOUCHED");
+}
+
+   </code></pre>
+  </div>
+
 <h5>Motor</h5>
-What motor is it?
+
 I used a NEMA 17 stepper motor in this project. And an A4988 driver by using this website for information on how to set it up: https://www.pololu.com/product/1182. I used code from the website to test it using the code at the bottom of this class page: https://nathanmelenbrink.github.io/ps70/10_machines/index.html. I used the accelstepper library found here: http://www.airspayce.com/mikem/arduino/AccelStepper/classAccelStepper.html#ace236ede35f87c63d18da25810ec9736
-When I tested my final code in the loosely wired final prototype (using pin-socket and socket-socket wires, breadboards etc.) the motor started to move when I pressed down on the wires connected to the driver on the breadboard. This meant it needed better connections, and I would probably have to solder everything together to continue to test my design. Unfortunately, I am not an advance solder-er and this took more time than expected, I did not finish due to connections breaking and redoing them, and generally taking more time than I had anticipated! I should have gotten more practice soldering during classes, but I had avoided it pretty successfully until I made my MVP and that was not nearly enough practice for this.
+When I tested my final code in the loosely wired final prototype (using pin-socket and socket-socket wires, breadboards etc.) The motor wouldn't move, so I thought attaching the motor to its own external power source could work better.
+<img src="wireexternalpower.JPEG" alt="external power wiring" width="100" height="110">
+<img src="2wireexternalpower.JPEG" alt="external power wiring" width="100" height="110">
+
+The motor actually started to move when I pressed down on the wires connected to the driver on the breadboard. This meant it needed better connections, and I would probably have to solder everything together to continue to test my design. Unfortunately, I am not an advance solder-er and this took more time than expected, I did not finish due to connections breaking and redoing them, and generally taking more time than I had anticipated! I should have gotten more practice soldering during classes, but I had avoided it pretty successfully until I made my MVP and that was not nearly enough practice for this.
+
+This is the code I use to test the motor:
+
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
+
+
+#include <AccelStepper.h>
+
+const int stepPin = 27;  // blue
+const int dirPin = 13;   // orange
+
+// Define a stepper and the pins it will use
+AccelStepper stepper(1, stepPin, dirPin); // initialise accelstepper for a two wire board
+
+void setup()
+{
+}
+
+void loop()
+{
+//  if (stepper.distanceToGo() == 0)
+//  {
+    // Random change to speed, position and acceleration
+    // Make sure we dont get 0 speed or accelerations
+    delay(1000);
+    
+    stepper.moveTo(1000);
+    stepper.setCurrentPosition(0);
+    stepper.setMaxSpeed(5);
+   stepper.setAcceleration(5);
+//  }
+  stepper.run();
+}
+
+   </code></pre>
+  </div>
 
 
 <h5>Takeaways as of 12/13 at 10 am:</h5>
 My computer/arduino is refusing to read any ports right now, so I cannot test the mechanisms as I solder them and put them into place, I also cannot upload my final code to the boards. I am going to keep it as it is in a deconstructed version with hopefully helpful visuals to explain what my prototype was designed to do and how it was designed to do it!
 
 <h5> Final things </h5>
-Kassia helped me solder the motor into position, and use pin/socket wires for the other connections. The function was getting stuck at the limit function loop in the setup function. By moving the limit switch into the void loop() in the while(). When that code was set up and the 
+
+Thank you so much too all the course staff for helping me with this project!
+Kassia helped me solder the motor into position, and use pin/socket wires for the other connections. The function was getting stuck at the limit function loop in the setup function. By moving the limit switch into the void loop() in the while(). The new code added variables for the direction and max position of the motor. While the motor is setting up and the minit switch is untouched it moves and sets the position of the limit switch. Then it uses the same code to move between the microphones. This made the motor run until the limit switch was pressed and then vibrated back and forth roughly turning a little bit in the direction of someone's voice. I didn't get much more chance to debug, because it fell and shorted something. The connections all semmed fine and the board was still reading the mics. When Kassia helped my test with a new motor and board and unsoldered driver on a breadboard nothing made the motor move, even with the test code. Unfortunately I did not get a video of it before it fell.
+
+<img src="wiresintegratedalittle.JPEG" alt="witind setup" width="100" height="110">
+<img src="fullendingsetup.JPEG" alt="Ending setup" width="100" height="110">
+<img src="fullendingsetupwithcomputer.JPEG" alt="Ending setup with computer" width="100" height="110">
+
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
+
+#include <driver/i2s.h>
+#include <ezButton.h>
+#include <AccelStepper.h>
+
+#define DIRECTION_CCW -1
+#define DIRECTION_CW   1
+
+#define MAX_POSITION 0x7FFFFFFF // maximum of position we can set (long type)
+
+
+ezButton limitSwitch(12);
+
+const int stepPin = 27;  
+const int dirPin = 13;
+
+float lastmoveinterval = 0; // setting up to store the past ratio for ending loop to see of motor should move the mic
+float interval; // stores microphone relative volumes so that the motor knows how much to turn
+
+
+AccelStepper stepper(1, stepPin, dirPin);
+
+int direction  = DIRECTION_CW;
+long targetPos = 0;
+
+const i2s_port_t I2S_PORT_mic1 = I2S_NUM_0;
+const i2s_port_t I2S_PORT_mic2 = I2S_NUM_1;
+
+const int BLOCK_SIZE = 128;
+esp_err_t err;
+
+bool motor_setup_status = false;
+
+class Microphone
+{
+  i2s_pin_config_t pin_config;
+  int32_t samples[BLOCK_SIZE];
+
+  public:
+  Microphone(i2s_pin_config_t _pin_config)
+  {
+    pin_config = _pin_config;
+    Serial.println("Pin configuration initialized"); 
+  }
+
+  void start(const i2s_port_t I2S_PORT)
+  {
+    err = i2s_set_pin(I2S_PORT, &pin_config);
+    if (err != ESP_OK) {
+      Serial.printf("Failed setting pin: %d\n", err);
+      while (true);
+    }
+    Serial.printf("Success");
+  }
+
+  float Update(const i2s_port_t I2S_PORT)
+  {
+    size_t bytes_read;
+    esp_err_t result = i2s_read(I2S_PORT,
+                                (char *)&samples,
+                                sizeof(int32_t) * BLOCK_SIZE, &bytes_read,     // the doc says bytes, but its elements.
+                                portMAX_DELAY); // no timeout
+   
+    int samples_read = bytes_read / sizeof(int32_t);
+    if (samples_read > 0) {
+ 
+      float mean = 0;
+      for (int i = 0; i < samples_read; ++i) {
+        mean += (samples[i] >> 14);
+      }
+      mean /= samples_read;
+ 
+      float maxsample = -1e8, minsample = 1e8;
+      for (int i = 0; i < samples_read; ++i) {
+        minsample = min(minsample, samples[i] - mean);
+        maxsample = max(maxsample, samples[i] - mean);
+      }
+      return (maxsample - minsample);
+    }
+  }
+};
+
+const i2s_pin_config_t pin_config1 = {
+      .bck_io_num = 22,   // BCKL
+      .ws_io_num = 32,    // LRCL
+      .data_out_num = -1, // not used (only for speakers)
+      .data_in_num = 14   // DOUT
+  };
+
+const i2s_pin_config_t pin_config2 = {
+      .bck_io_num = 33,   // BCKL
+      .ws_io_num = 15,    // LRCL
+      .data_out_num = -1, // not used (only for speakers)
+      .data_in_num = 23   // DOUT
+  };
+
+
+ Microphone mic1(pin_config1);
+ Microphone mic2(pin_config2);
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(115200);
+  limitSwitch.setDebounceTime(50);
+  Serial.println("Configuring I2S...");
+
+
+  // The I2S config as per the example
+  const i2s_config_t i2s_config = {
+      .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX), // Receive, not transfer
+      .sample_rate = 16000,                         // 16KHz
+      .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT, // could only get it to work with 32bits
+      .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT, // although the SEL config should be left, it seems to transmit on right
+      .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
+      .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,     // Interrupt level 1
+      .dma_buf_count = 4,                           // number of buffers
+      .dma_buf_len = BLOCK_SIZE                     // samples per buffer
+  };
+
+ err = i2s_driver_install(I2S_PORT_mic1, &i2s_config, 0, NULL);
+  if (err != ESP_OK) {
+    Serial.printf("Failed installing driver: %d\n", err);
+    while (true);
+  }
+  Serial.println("I2S driver for MIC 1 installed.");
+
+  err = i2s_driver_install(I2S_PORT_mic2, &i2s_config, 0, NULL);
+    if (err != ESP_OK) {
+      Serial.printf("Failed installing driver: %d\n", err);
+      while (true);
+    }
+  Serial.println("I2S driver for MIC 2 installed.");
+
+  // err = i2s_driver_install(I2S_PORT_mic3, &i2s_config, 0, NULL);
+  // if (err != ESP_OK) {
+  //   Serial.printf("Failed installing driver: %d\n", err);
+  //   while (true);
+  // }
+  //Serial.println("I2S driver for MIC 3 installed.");
+
+  Serial.println("Starting Mic 1");
+  mic1.start(I2S_PORT_mic1);
+  Serial.println("Starting Mic 2");
+  mic2.start(I2S_PORT_mic2);
+
+  limitSwitch.setDebounceTime(50); // set debounce time to 50 milliseconds
+
+  stepper.setMaxSpeed(100.0);   // set the maximum speed
+  stepper.setAcceleration(100.0); // set acceleration
+  stepper.setSpeed(200);         // set initial speed
+  stepper.setCurrentPosition(0); // set position
+
+  targetPos = direction * MAX_POSITION;
+  stepper.moveTo(targetPos);
+
+  
+
+
+}
+
+
+
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  
+while (motor_setup_status == false){
+  limitSwitch.loop();
+  int state = limitSwitch.getState();
+
+  if (state == 1) {
+    Serial.println(F("The limit switch: UNTOUCHED"));
+
+    targetPos = direction * MAX_POSITION;
+    stepper.setCurrentPosition(0); // set position
+    stepper.moveTo(targetPos);
+
+    // without this part, the move will stop after reaching maximum position
+  if (stepper.distanceToGo() == 0) { // if motor moved to the maximum position
+    stepper.setCurrentPosition(0);   // reset position to 0
+    stepper.moveTo(targetPos);       // move the motor to maximum position again
+  }
+
+  stepper.run(); // MUST be called in loop() function
+
+  }
+else{
+  motor_setup_status = true;
+  Serial.println(F("The limit switch: TOUCHED"));
+  break;
+}  
+
+  //motor_setup_status = true;
+  }
+
+
+while (motor_setup_status == true) {
+
+ float mic1sound = (mic1.Update(I2S_PORT_mic1) - 1.55e8 - 4000000);
+  float mic2sound = (mic2.Update(I2S_PORT_mic2) - 1.2e8 - 2500000);
+  Serial.print("Variable_1:");
+  Serial.println(mic1sound);
+  Serial.print("Variable_2:");
+  Serial.println(mic2sound);
+
+    interval = ((mic2sound)/(mic1sound + mic2sound)); // find the ratio of mic2sound to the total sound
+    if (abs(interval-lastmoveinterval) >= 0.1)       // if the change in sound measured between the two mics 
+                                                      //is significant based on my rough calibration.
+    {
+      stepper.moveTo(interval*1000);
+      stepper.setMaxSpeed(5);
+      stepper.setAcceleration(5);// As PK explained to me, if 1 was recording zero sound, and 2 all the sound,
+                                    // mic2sound/(mic1sound + mic2sound) would be 1. The original test code I got 
+                                    // the 
+      //Serial.println("or here?"); // this did not print, so the problem is somewhere in between, Suvin
+                                   // suggested it could be because the stepper.run function calls the stepper motor
+                                   // to run without stopping, so the program never moves on.
+      lastmoveinterval = interval; // reset the lastmoveinterval so that the device can tell whether the next
+                                   // ratio measured is significant enough to move.
+    }
+    stepper.run();
+
+
+
+
+
+}
+  
+ 
+  
+
+
+  // get the sample from mic1 and mic2
+  // do the ratio
+  // move big mic
+
+}
+
+   </code></pre>
+  </div>
 
 <h5>If I had more time:</h5>
-Solder everything together, and re-print making the holes for the wires bigger, and move the hole that is in the bottom of the mechanism for wiring to power to the side, so it can rest easily on the table.
-I don’t know how well the Accelstepper library works for this project, because the wiring difficulties prevented me from testing it fully.
+Solder everything together, and then test the new board and then debug/alter the code a little bit, re-print making the holes for the wires bigger, and move the hole that is in the bottom of the mechanism for wiring to power to the side, so it can rest easily on the table.
+I don’t know how well the Accelstepper library works for this project, because the wiring issues etc. prevented me from testing it fully.
 
 
 
