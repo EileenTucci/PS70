@@ -369,6 +369,329 @@ If that all works, I will also add a feature with the more sensitive microphones
 My goal is to also 3D print everything into a little cylinder with a compartment on the bottom for the microcontroller and motor driver, a space above that for the motor to sit in, and little pockets evenly spaced apart for the microphones to sit in. The top platform will be more of a rail in this design that the main microphone can slide onto and the bottom of the device will have a 3D printed design of the attachment piece that the main microphone has now, so the whole thing can fit on a camera.
 
 
+This is the messy version of some of the documentation based on the notes I was writing to myself as I worked on this project, kind of more of a loose diary version
+
+
+For the 3D print, I was nervous about how a 3D print with some moving parts would work. What is the order that you print everything in? Do you print it together and then take out the supports so it can turn? In the end, this was not an issue. At the beginning of revising the code after the MVP I was thinking I would maybe use gears, but I did not. 
+At the time, here I watched this video for advice:
+https://www.youtube.com/watch?v=ki4FqiUxBRA
+Takeaway: Make the things separately and then sand them down
+
+When I was coming up with my 3D printed design I needed to decide what type of structure it would have to have to house the main microphone, the sensor microphones, microcontroller, and the motor.
+
+In the 3D design I would need:
+
+Something for the motor to turn
+Whatever the motor turns needs to match up to the clip onto the bottom of the main microphone so the main microphone can slide on and attach to my device;
+This would have to have a direct connection to the motor, so the motor can turn it. 
+It should have a magnet on it so I can use the Hall sensor to zero the machine at a given point (this was before I switched to limit switches) 
+But how would I make sure the magnet doesn’t interfere with the camera?
+Possible solution: Just, like just under where the magnet will be there should be sensors that are placed where the mics are placed, so it is as far away from the screens on the camera as possible.
+
+Track on mic:
+Replicate the track that is on the mic at the bottom of the device, so the device can fit into a camera like the mic does normally.
+(This never ended up being done) 
+I would also make the track a negative of the track on the main microphone so it can slide on and stay there.
+
+___________________________
+
+I figured I would make the design in 3 parts so that the motor and board could sit on too of each other. I watched this tutorial on how to make your 3D printed materials “snap-fit” what I ended up doing was making the top of the body a little bit smaller than the bottom body, and making the bottom body’s walls thinner at the top so that it makes a little shelf for the top body to sit in. 
+
+Make snap-fit designs tutorial 
+https://www.youtube.com/watch?v=dahn-9FePeM
+_____________________
+
+Initially I started thinking that to zero the device, the motor would turn 180 deg to the left and then, if the sensor does not record the magnet’s presence 360 deg to the right. This would also mean that the motor does not turn around all the way and tangle itself in the main microphone cord
+
+If it senses the magnet, stop, set position 0. —> The question is, do I have to do this? It would involve storing position
+Then also I could have the microphones calibrate to zero
+I would need to store position and where the position of the motor is
+
+You will need to calibrate these microphones before you use them! It it reads  >5 go there, if two of them are loud go to the in between place between those two microphones (this is from when I was going to use 3 microphones)
+
+
+Setup code is like (i think i can just use the seconds function bc that is running the whole time and i want this to start at zero?) to wait, then wherever the microphone is is zero position.
+
+________________
+
+Okok— using the magnet sensor
+
+Have check the magnet sensor, go left, if mag field decreases go right until it is the correct mag field for that position. There are 6 positions.
+
+Make a function called “Go-To” where the motor does this
+
+Takes 10 steps (for ex), reads then decides to go in the other direction until hall sensor reads xxx
+Position u want to go to, if all the positions are predefined.
+
+This did not work because hall sensors only read what is directly above them.
+_____________________________
+
+Put separate power supply for motor and for board! Maybe this will make the motor run better
+______________________________
+
+I looked up the analog pins for ESP32 to use the hall sensor, thinking it might need that.
+
+Hall sensor wiring
+https://randomnerdtutorials.com/esp32-adc-analog-read-arduino-ide/
+
+Plus
+https://nathanmelenbrink.github.io/ps70/06_input/index.html
+Nathan’s orientation of the wiring was correct, the version I was trying from the data sheet was not.
+
+Past student Hall sensor work:
+https://2048-student.github.io/PHYS_S-12/pages/classvii.html
+
+Using this student’s code, the sensor acted more as a touch sensor.
+
+Instead I looked at the calibration week project of this former student:
+https://mohammed-mutaher.github.io/PHYSCI-70/06/index6.html
+
+After looking at their setup, I added a 1 Ohm resistor
+And used their code instead 
+
+It appears that using this there are rapid peaks and valleys, the peaks with a 1 and 3 ohm resistor go up slightly as one side of the magnet gets close to them, I saw less noticeable change doing that with the 10 ohm resistor. However, this setup will work for me because all I need is for the sensor to know when a magnet is present. If the magnet is flipped over, the sensor reads nothing. If I can get my final project code to run the motor 180 deg in 1 direction, then 360 deg in the other and stop when 2 readings in a row are zero, this version of the sensor should work.
+
+In my very quick rough calibration using ~4mm pieces of cardboard, it seems that the magnet stops being registered by the sensor when it is between 8 and 12 mm away, which is consistent with the upper registers of its sensitivity when it works properly in Nathan and Mohammed’s examples. I decided not to use a resistor, because I felt that was an unnecessary component given what I will be using this setup for.
+
+The next day when I tried this again, it did not work. I switched to limit switches.
+_____________________
+
+This is the ReadMe for the GitHub to use the new microphones: https://github.com/maspetsberger/esp32-i2s-mems/blob/master/Readme.md
+
+
+This is also says how to wire the i2s microphones 
+
+Okay. This was a doozy. It uses functions that don’t exist in the library any more. I could get the code to work with Nathan’s modification in my arduino window: 
+<div style="height: 350px; overflow: scroll">
+<pre><code class="language-arduino">
+
+/**
+
+ * ESP32 I2S Serial Plotter Example.
+
+*
+
+ * This example is based on the espressif-idf example and Public Domain.
+
+* @author maspetsberger
+
+ */
+
+ 
+
+#include <driver/i2s.h>
+
+ 
+
+const i2s_port_t I2S_PORT = I2S_NUM_0;
+
+ 
+
+void setup() {
+
+  Serial.begin(115200);
+
+  Serial.println("Configuring I2S...");
+
+  esp_err_t err;
+
+ 
+
+  // The I2S config as per the example
+
+  const i2s_config_t i2s_config = {
+
+      .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX), // Receive, not transfer
+
+      .sample_rate = 16000,                         // 16KHz
+
+      .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT, // could only get it to work with 32bits
+
+      .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT, // although the SEL config should be left, it seems to transmit on right
+
+      .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_STAND_I2S),
+
+      .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,     // Interrupt level 1
+
+      .dma_buf_count = 4,                           // number of buffers
+
+      .dma_buf_len = 8                              // 8 samples per buffer (minimum)
+
+  };
+
+ 
+
+  // The pin config as per the setup
+
+  const i2s_pin_config_t pin_config = {
+
+      .bck_io_num = 14,   // BCKL
+
+      .ws_io_num = 15,    // LRCL
+
+      .data_out_num = -1, // not used (only for speakers)
+
+      .data_in_num = 32   // DOUT
+
+  };
+
+ 
+
+  // Configuring the I2S driver and pins.
+
+  // This function must be called before any I2S driver read/write operations.
+
+  err = i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);
+
+  if (err != ESP_OK) {
+
+    Serial.printf("Failed installing driver: %d\n", err);
+
+    while (true);
+
+  }
+
+  err = i2s_set_pin(I2S_PORT, &pin_config);
+
+  if (err != ESP_OK) {
+
+    Serial.printf("Failed setting pin: %d\n", err);
+
+    while (true);
+
+  }
+
+  Serial.println("I2S driver installed.");
+
+}
+
+ 
+
+void loop() {
+
+ 
+
+  // Read a single sample and log it for the Serial Plotter.
+
+  int32_t sample = 0;
+
+  size_t bytes_read;
+
+  esp_err_t result = i2s_read(I2S_PORT, (char *)&sample, sizeof(sample), &bytes_read, portMAX_DELAY); // no timeout
+
+  if (bytes_read > 0) {
+
+    Serial.println(sample);
+
+  }
+
+ 
+
+}
+
+
+ </code></pre>
+  </div>
+
+When trying to get the GetNoiseLevel function to work, that was a challenge. It did not work.
+
+The problem with the samples that I got from the Input Serial Plotter, is that it is recording everything correctly relatively, but thinks that the noise of a room is a low negative number, but when I speak into it it does respond.
+
+
+Then I made the changes because I realized the Volume Measure thing is what I wanted
+
+My friend Mark thing help change the function so that it read everything as arrays instead of going back and forth in dealing with the sample/samples data
+
+PK help me make the classes in this volume setup. This was in the final code in the other documentation page.
+
+__________________________
+
+Only 2 i2s ports channels on ESP32 aka need to redesign or figure out how read right and left channels on each of those ports, I think I will do 2 microphones instead of 3!
+https://docs.espressif.com/projects/esp-idf/en/release-v4.2/esp32/api-reference/peripherals/i2s.html
+
+I later learned these are not physical ports but configurable channels. Because later that day it did not work with three microphones when I had just added them to the microphone-specific stuff, not this bit: const i2s_port_t I2S_PORT = I2S_NUM_0; at the beginning.
+
+When kassia added that the code should call 0, 1, and 2 (for each microphone) turns out 2 doesn’t exist. It seems like, based off a little googling, there should be a way for the esp32 to be able to read 4 microphones of each channel of these ports, I have not been able to find easily accessible code for that, so I am going to adapt my project to only use two microphones to decide where to point.
+Other things kassia did to the code:
+Added the calling ports to the functions for each microphone
+Made a “failed to install driver” message for each port
+Serial prints to confirm each mic is starting
+
+________________________
+My hall effect sensor stopped working and I moved to a limit switch
+
+GET HELP WITH HALL EFFECT SENSOR AND STOPPING/CALIBRATING THE MOTOR
+
+This is what I think I should write for my code in settinguphallsensor.ino
+I used this video: https://www.youtube.com/watch?v=bOfizJBpMrA
+For counter help
+
+Actually nevermind. I do not know how the hall sensor will work, therefore I cannot do this
+
+I am going to use a limit switch instead and put it on the top of my project base so that the turning top slider will trigger it!
+
+https://arduinogetstarted.com/tutorials/arduino-limit-switch
+^ training tutorial I used to learn how to use a limit switch
+
+What if i constantly had the motors take ratio measurements and only move if the ratio was greater than a certain amount? Then the motor wouldn’t freak out as the person speaking moves just a little bit. Then if the ration x stepnumberbetween microphones is less that what it was it will take steps backwards if the new ratio is greater it will go forwards.
+________________________
+
+LIMIT SWITCH doesn’t work
+Why
+Try soldering then cry
+Make into a class first
+
+EVERYTHING FITS!! FOR 3D PRINT! EXCEPT little posts for the microcontroller did not work, but that’s ok I just popped them out so nothing would potentially get in the way later
+
+And the limit switch will just barely click when the thing goes over it, the switch pops back up, so it will always have to do one full rotation before it starts:
+
+Turn 360 deg counter clockwise until (for limit switch = UNTOUCHED until limit switch = TOUCHED turn 360 counterclockwise)
+When limit switch = Touched then turn ¼ (800 microsteps) of the way more in the cc direction, set steps taken = zero
+^ setup
+
+Pseudocode Draft:
+
+Check microphones
+Save that ratio as a variable
+
+Move to sound
+At end of move to sound, save that ratio variable as LastMoveRatio
+
+
+If Ratio >= LastMoveRatio +- 1/10th 
+Move to sound
+
+
+Move to Sound;
+
+If mic 2> mic 1 then move counterclockwise
+If mic 2 , mic 1 then move clockwise 
+
+
+Multiply ratio by 1600
+_________
+
+Next thing to do:
+Wire in the limit switch, see if its a connection issue
+Wire in mics and test the calibration stuff on them, glue things into place until someone can help you 
+Calculate the separated ratios
+
+
+According to my initial calibration and so, the first iteration of my code, the ratio changed greater than a hundredth between most of the distinct angles I calibrated for. 
+
+Shortsights with the project as a whole: It makes louder people louder, if they are louder than the room around them then the mic will face them more than the quieter person who is relatively less loud compared to the room sound being picked up by the other microphone
+
+Will have to tangle its own cord a little because of switch instead of hall or motion sensor
+
+__________________
+
+Snatched this man’s code to test stepper motor classing:
+https://www.dropbox.com/sh/ya76wwmwtvk4cgi/AADbrXeYzaF81sZp3TY_TRkQa?dl=0
+
+Everything else was put into the final documentation page!
+
+
+
 
 
 
